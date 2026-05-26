@@ -26,6 +26,7 @@
   export let rowDescriptor: DisplayRowDescriptor;
   export let style: { [key: string]: string | number };
   export let displayedColumns: Array<[string, ProcessedColumn | JoinedColumn]>;
+  export let isScrolling = false;
 
   const tabularData = getTabularDataStoreFromContext();
 
@@ -114,6 +115,7 @@
           {columnFabric}
           {recordsData}
           canUpdateRecords={$canUpdateRecords}
+          {isScrolling}
         />
       {/each}
     {:else if isHelpTextRow(row)}

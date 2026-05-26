@@ -16,6 +16,7 @@
 
   const IS_SCROLLING_DEBOUNCE_INTERVAL = 150;
   const DEFAULT_ESTIMATED_ITEM_SIZE = 30;
+  const USE_NATIVE_SCROLLBAR = true;
 </script>
 
 <script lang="ts">
@@ -69,6 +70,8 @@
   let requestGetItemStyleCache = false;
   let psRef: PerfectScrollbar | undefined;
   let lastScrollbarLayoutKey = '';
+  let lastDispatchedStartIndex = -1;
+  let lastDispatchedStopIndex = -1;
 
   let itemInfo: ItemInfo;
 
@@ -116,6 +119,28 @@
   // For direct updates on horizontalScrollOffset
   $: onHscrollChange(horizontalScrollOffset);
 
+  function shouldDispatchVerticalScroll(newScrollOffset: number): boolean {
+    const nextItemInfo = listUtils.getItemsInfo({
+      itemSize,
+      instanceProps,
+      isScrolling: true,
+      scrollDirection:
+        scrollOffset < newScrollOffset ? 'forward' : 'backward',
+      itemCount,
+      overscanCount,
+      scrollOffset: newScrollOffset,
+      height,
+      itemKey,
+      estimatedItemSize,
+    });
+    const hasVisibleRangeChanged =
+      nextItemInfo.startIndex !== lastDispatchedStartIndex ||
+      nextItemInfo.stopIndex !== lastDispatchedStopIndex;
+    lastDispatchedStartIndex = nextItemInfo.startIndex;
+    lastDispatchedStopIndex = nextItemInfo.stopIndex;
+    return hasVisibleRangeChanged;
+  }
+
   function onScroll(event: Event): void {
     const { clientHeight, scrollHeight, scrollTop, scrollLeft } =
       event.target as HTMLElement;
@@ -134,10 +159,13 @@
         0,
         Math.min(scrollTop, scrollHeight - clientHeight),
       );
-      isScrolling = true;
-      scrollDirection = scrollOffset < newScrollOffset ? 'forward' : 'backward';
-      scrollOffset = newScrollOffset;
-      dispatch('scroll', scrollOffset);
+      if (shouldDispatchVerticalScroll(newScrollOffset)) {
+        isScrolling = true;
+        scrollDirection =
+          scrollOffset < newScrollOffset ? 'forward' : 'backward';
+        scrollOffset = newScrollOffset;
+        dispatch('scroll', scrollOffset);
+      }
     }
   }
 
@@ -155,11 +183,6 @@
     }
     onHscrollChange(horizontalScrollOffset);
 
-    psRef = new PerfectScrollbar(outerRef, {
-      minScrollbarLength: 40,
-      wheelPropagation: false,
-    });
-
     const callback = (ev: Event) => {
       onScroll(ev);
     };
@@ -169,12 +192,24 @@
 
     dispatch('refetch', itemInfo);
 
-    outerRef.addEventListener('ps-scroll-y', callback);
-    outerRef.addEventListener('ps-scroll-x', hCallback);
+    if (USE_NATIVE_SCROLLBAR) {
+      outerRef.addEventListener('scroll', callback, { passive: true });
+    } else {
+      psRef = new PerfectScrollbar(outerRef, {
+        minScrollbarLength: 40,
+        wheelPropagation: false,
+      });
+      outerRef.addEventListener('ps-scroll-y', callback);
+      outerRef.addEventListener('ps-scroll-x', hCallback);
+    }
 
     return () => {
-      outerRef.removeEventListener('ps-scroll-y', callback);
-      outerRef.removeEventListener('ps-scroll-x', hCallback);
+      if (USE_NATIVE_SCROLLBAR) {
+        outerRef.removeEventListener('scroll', callback);
+      } else {
+        outerRef.removeEventListener('ps-scroll-y', callback);
+        outerRef.removeEventListener('ps-scroll-x', hCallback);
+      }
       psRef?.destroy();
     };
   });

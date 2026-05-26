@@ -44,6 +44,7 @@
   export let clientSideErrorMap: WritableMap<CellKey, ClientSideCellError[]>;
   export let value: unknown = undefined;
   export let canUpdateRecords: boolean;
+  export let isScrolling = false;
 
   $: effectiveColumnFabric =
     isProvisionalRecordRow(row) && !isJoinedColumn(columnFabric)
@@ -66,10 +67,12 @@
   $: ({ column } = effectiveColumnFabric);
   $: columnId = effectiveColumnFabric.id;
   $: isWithinPlaceholderRow = isPlaceholderRecordRow(row);
-  $: modificationStatus = $modificationStatusMap.get(key);
+  $: isActiveCell = $selection.activeCellId === cellId;
+  $: useScrollPreview = isScrolling && !isActiveCell;
+  $: modificationStatus = useScrollPreview ? undefined : $modificationStatusMap.get(key);
   $: serverErrors =
     modificationStatus?.state === 'failure' ? modificationStatus?.errors : [];
-  $: clientErrors = $clientSideErrorMap.get(key) ?? [];
+  $: clientErrors = useScrollPreview ? [] : ($clientSideErrorMap.get(key) ?? []);
   $: errors = [...serverErrors, ...clientErrors];
   $: hasServerError = !!serverErrors.length;
   $: hasClientError = !!clientErrors.length;
@@ -78,11 +81,14 @@
   // TODO: Handle case where INSERT is allowed, but UPDATE isn't
   // i.e. row is a placeholder row and record isn't saved yet
   $: isEditable = canUpdateRecords && effectiveColumnFabric.isEditable;
-  $: recordSummary = $linkedRecordSummaries.get(columnId)?.get(String(value));
-  $: joinedRecordSummariesMap = isJoinedColumn(effectiveColumnFabric)
+  $: recordSummary = useScrollPreview
+    ? undefined
+    : $linkedRecordSummaries.get(columnId)?.get(String(value));
+  $: joinedRecordSummariesMap = !useScrollPreview && isJoinedColumn(effectiveColumnFabric)
     ? $joinedRecordSummaries.get(columnId)
     : undefined;
   $: fileManifest = (() => {
+    if (useScrollPreview) return undefined;
     if (!column.metadata?.file_backend) return undefined;
     const fileReference = parseFileReference(value);
     if (!fileReference) return undefined;
@@ -108,6 +114,16 @@
       );
     }
   }
+
+  function getScrollPreviewValue(cellValue: unknown): string {
+    if (cellValue === null) return 'NULL';
+    if (cellValue === undefined) return '';
+    if (typeof cellValue === 'string') return cellValue;
+    if (typeof cellValue === 'number' || typeof cellValue === 'boolean') {
+      return String(cellValue);
+    }
+    return '';
+  }
 </script>
 
 <SheetDataCell
@@ -118,57 +134,73 @@
   isRangeRestricted={isJoinedColumn(columnFabric)}
   let:isActive
 >
-  <CellBackground
-    when={isJoinedColumn(columnFabric)}
-    color="var(--cell-bg-color-joined-cell)"
-  />
-  <CellBackground
-    when={hasServerError || (!isActive && hasClientError)}
-    color="var(--cell-bg-color-error)"
-  />
-  <CellBackground when={!isEditable} color="var(--cell-bg-color-disabled)" />
-  {#if !(isEditable && isActive)}
-    <!--
-    We hide these backgrounds when the cell is editable and active because a
-    white background better communicates that the user can edit the active
-    cell.
-  -->
-    <RowCellBackgrounds hasErrors={rowHasErrors} />
-  {/if}
+  {#if useScrollPreview}
+    <div class="scroll-cell-preview">{getScrollPreviewValue(value)}</div>
+  {:else}
+    <CellBackground
+      when={isJoinedColumn(columnFabric)}
+      color="var(--cell-bg-color-joined-cell)"
+    />
+    <CellBackground
+      when={hasServerError || (!isActive && hasClientError)}
+      color="var(--cell-bg-color-error)"
+    />
+    <CellBackground when={!isEditable} color="var(--cell-bg-color-disabled)" />
+    {#if !(isEditable && isActive)}
+      <!--
+      We hide these backgrounds when the cell is editable and active because a
+      white background better communicates that the user can edit the active
+      cell.
+    -->
+      <RowCellBackgrounds hasErrors={rowHasErrors} />
+    {/if}
 
-  <CellFabric
-    columnFabric={effectiveColumnFabric}
-    {isActive}
-    {value}
-    {setValue}
-    {isProcessing}
-    {canViewLinkedEntities}
-    {fileManifest}
-    setFileManifest={(mash, manifest) => {
-      recordsData.fileManifests.addBespokeValue({
-        columnId: String(columnId),
-        key: mash,
-        value: manifest,
-      });
-    }}
-    {recordSummary}
-    setRecordSummary={(recordId, rs) =>
-      linkedRecordSummaries.addBespokeValue({
-        columnId: String(columnId),
-        key: recordId,
-        value: rs,
-      })}
-    {joinedRecordSummariesMap}
-    showAsSkeleton={$recordsDataState === States.Loading &&
-      $fetchedRecordRows.length === 0}
-    disabled={!isEditable}
-    on:movementKeyDown={({ detail }) =>
-      handleKeyboardEventOnCell(detail.originalEvent, selection)}
-    horizontalAlignment={isPrimaryKey ? 'left' : undefined}
-    lightText={hasError || isProcessing}
-  />
+    <CellFabric
+      columnFabric={effectiveColumnFabric}
+      {isActive}
+      {value}
+      {setValue}
+      {isProcessing}
+      {canViewLinkedEntities}
+      {fileManifest}
+      setFileManifest={(mash, manifest) => {
+        recordsData.fileManifests.addBespokeValue({
+          columnId: String(columnId),
+          key: mash,
+          value: manifest,
+        });
+      }}
+      {recordSummary}
+      setRecordSummary={(recordId, rs) =>
+        linkedRecordSummaries.addBespokeValue({
+          columnId: String(columnId),
+          key: recordId,
+          value: rs,
+        })}
+      {joinedRecordSummariesMap}
+      showAsSkeleton={$recordsDataState === States.Loading &&
+        $fetchedRecordRows.length === 0}
+      disabled={!isEditable}
+      on:movementKeyDown={({ detail }) =>
+        handleKeyboardEventOnCell(detail.originalEvent, selection)}
+      horizontalAlignment={isPrimaryKey ? 'left' : undefined}
+      lightText={hasError || isProcessing}
+    />
 
-  {#if errors.length}
-    <CellErrors {serverErrors} {clientErrors} forceShowErrors={isActive} />
+    {#if errors.length}
+      <CellErrors {serverErrors} {clientErrors} forceShowErrors={isActive} />
+    {/if}
   {/if}
 </SheetDataCell>
+
+<style>
+  .scroll-cell-preview {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    width: 100%;
+    padding: var(--sm4);
+    color: var(--color-fg-base);
+    line-height: 1.2;
+  }
+</style>

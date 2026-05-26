@@ -76,6 +76,7 @@
             style={item.style}
             row={$displayRowDescriptors[item.index].row}
             rowDescriptor={$displayRowDescriptors[item.index]}
+            isScrolling={item.isScrolling}
             {displayedColumns}
           />
         {/if}

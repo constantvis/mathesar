@@ -250,7 +250,7 @@
   });
   $: if (sheetViewportWidth > 0 && renderedDisplayedColumns.length > 0) {
     recordsData.setColumnProjection(
-      renderedDisplayedColumns.map(([columnId]) => columnId),
+      getDisplayedColumnEntries($displayedColumns).map(([columnId]) => columnId),
     );
   }
   $: maybeApplyWideTableDefaultHiddenColumns({
