@@ -21,6 +21,7 @@
   import { tableInspectorVisible } from '@mathesar/stores/localStorage';
   import { modal } from '@mathesar/stores/modal';
   import {
+    type HiddenColumns,
     ID_ADD_NEW_COLUMN,
     ID_ROW_CONTROL_COLUMN,
     type JoinedColumn,
@@ -45,6 +46,7 @@
 
   const COLUMN_VIRTUALIZATION_THRESHOLD = 80;
   const COLUMN_RENDER_OVERSCAN_PX = 1000;
+  const WIDE_TABLE_TECHNICAL_COLUMN_THRESHOLD = 80;
 
   const tabularData = getTabularDataStoreFromContext();
   const importModal = modal.spawnModalController();
@@ -60,6 +62,7 @@
   let tableInspectorTab: ComponentProps<WithTableInspector>['activeTabId'] =
     'table';
   let sheetViewportWidth = 0;
+  const tableOidsWithAppliedWideDefaults = new Set<number>();
 
   $: ({ currentRoleOwns } = table.currentAccess);
   $: usesVirtualList = context !== 'widget';
@@ -68,12 +71,14 @@
     processedColumns,
     display,
     isLoading,
+    meta,
     selection,
     recordsData,
     allColumns,
     displayedColumns,
     columnsDataStore,
   } = $tabularData);
+  $: ({ hiddenColumns } = meta);
   $: $tabularData, (tableInspectorTab = 'table');
   $: clipboardHandler = new SheetClipboardHandler({
     copyingContext: {
@@ -152,6 +157,35 @@
     return columnWidths.get(columnId) ?? DEFAULT_COLUMN_WIDTH_PX;
   }
 
+  function isTechnicalColumn(column: ProcessedColumn | JoinedColumn): boolean {
+    if (isJoinedColumn(column)) return false;
+    const { name } = column.column;
+    return name.startsWith('__');
+  }
+
+  function maybeApplyWideTableDefaultHiddenColumns({
+    tableOid,
+    allColumnsMap,
+    currentlyHidden,
+  }: {
+    tableOid: number;
+    allColumnsMap: Map<string, ProcessedColumn | JoinedColumn>;
+    currentlyHidden: HiddenColumns;
+  }): void {
+    if (context !== 'page') return;
+    if (tableOidsWithAppliedWideDefaults.has(tableOid)) return;
+    if (allColumnsMap.size <= WIDE_TABLE_TECHNICAL_COLUMN_THRESHOLD) return;
+    if (currentlyHidden.size > 0) return;
+
+    const technicalColumnIds = [...allColumnsMap]
+      .filter(([, column]) => isTechnicalColumn(column))
+      .map(([columnId]) => columnId);
+
+    tableOidsWithAppliedWideDefaults.add(tableOid);
+    if (technicalColumnIds.length === 0) return;
+    hiddenColumns.update((h) => h.withColumns(technicalColumnIds));
+  }
+
   function getRenderedDisplayedColumns({
     displayedColumns: displayedColumnsMap,
     sheetColumns: allSheetColumns,
@@ -213,6 +247,11 @@
     horizontalScrollOffset: $horizontalScrollOffset,
     sheetViewportWidth,
     pinnedColumnIds: pinnedRenderedColumnIds,
+  });
+  $: maybeApplyWideTableDefaultHiddenColumns({
+    tableOid: table.oid,
+    allColumnsMap: $allColumns,
+    currentlyHidden: $hiddenColumns,
   });
 
   function persistColumnWidths(widthsMap: [string, number | null][]): void {
