@@ -68,6 +68,7 @@
 
   let requestGetItemStyleCache = false;
   let psRef: PerfectScrollbar | undefined;
+  let lastScrollbarLayoutKey = '';
 
   let itemInfo: ItemInfo;
 
@@ -185,6 +186,20 @@
     dispatch('refetch', itemInfo);
   };
 
+  function updateScrollbarWhenLayoutChanges() {
+    if (!psRef) return;
+    const layoutKey = [
+      height,
+      estimatedTotalSize,
+      paddingBottom,
+      width ?? 'auto',
+      itemCount,
+    ].join(':');
+    if (layoutKey === lastScrollbarLayoutKey) return;
+    lastScrollbarLayoutKey = layoutKey;
+    psRef.update();
+  }
+
   function resetIsScrollingDebounced() {
     if (resetIsScrollingTimeoutId !== undefined) {
       cancelTimeout(resetIsScrollingTimeoutId);
@@ -205,9 +220,7 @@
       requestGetItemStyleCache = false;
       instanceProps.styleCache = {};
     }
-    if (psRef) {
-      psRef.update();
-    }
+    updateScrollbarWhenLayoutChanges();
   });
 
   onDestroy(() => {

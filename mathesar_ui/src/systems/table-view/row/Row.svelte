@@ -131,8 +131,11 @@
       pointer-events: none;
     }
 
-    &:not(:hover) :global(.cell-bg-row-hover) {
-      display: none;
+    &:hover :global([data-sheet-element='data-cell']:not([data-cell-active])) {
+      background-color: var(
+        --cell-bg-color-row-hover,
+        var(--cell-bg-color-base)
+      );
     }
 
     &.is-add-placeholder {

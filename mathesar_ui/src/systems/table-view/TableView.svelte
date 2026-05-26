@@ -44,8 +44,8 @@
   type Context = 'page' | 'widget';
   type DisplayedColumnEntry = [string, ProcessedColumn | JoinedColumn];
 
-  const COLUMN_VIRTUALIZATION_THRESHOLD = 80;
-  const COLUMN_RENDER_OVERSCAN_PX = 1000;
+  const COLUMN_VIRTUALIZATION_THRESHOLD = 12;
+  const COLUMN_RENDER_OVERSCAN_PX = 300;
   const WIDE_TABLE_TECHNICAL_COLUMN_THRESHOLD = 80;
 
   const tabularData = getTabularDataStoreFromContext();
