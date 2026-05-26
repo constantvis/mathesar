@@ -5041,12 +5041,14 @@ $$ LANGUAGE SQL STABLE;
 
 CREATE OR REPLACE FUNCTION msar.build_linked_record_summaries_ctes(
   tab_id oid,
-  table_record_summary_templates jsonb DEFAULT NULL
+  table_record_summary_templates jsonb DEFAULT NULL,
+  column_attnums jsonb DEFAULT NULL
 ) RETURNS TEXT AS $$/*
 Build an SQL text expression defining a sequence of CTEs that give summaries for linked records.
 
 Args:
   tab_id: The table for whose fkey values' linked records we'll get summaries.
+  column_attnums: Optional JSON array of FK attnums for which to build summaries.
 */
 SELECT
   ', ' ||
@@ -5066,6 +5068,11 @@ SELECT
     ''
   )
 FROM msar.get_fkey_map_table(tab_id)
+WHERE column_attnums IS NULL
+  OR conkey::text IN (
+    SELECT requested_attnum.value
+    FROM jsonb_array_elements_text(column_attnums) AS requested_attnum(value)
+  )
 $$ LANGUAGE SQL STABLE;
 
 
@@ -5146,18 +5153,27 @@ $$ LANGUAGE SQL STABLE;
 
 
 CREATE OR REPLACE FUNCTION
-msar.build_summary_join_expr_for_table(tab_id oid, cte_name text) RETURNS TEXT AS $$/*
+msar.build_summary_join_expr_for_table(
+  tab_id oid,
+  cte_name text,
+  column_attnums jsonb DEFAULT NULL,
+  include_self boolean DEFAULT true
+) RETURNS TEXT AS $$/*
 Build an SQL expression to join the summary CTEs to the main CTE along fkey values.
 
 Args:
   tab_oid: The table defining the columns of the main CTE.
   cte_name: The name of the main CTE we'll join the summary CTEs to.
+  column_attnums: Optional JSON array of FK attnums for which summaries are needed.
+  include_self: Whether to join the table's own record summary CTE.
 */
 WITH fkey_map_cte AS (SELECT * FROM msar.get_fkey_map_table(tab_id))
 SELECT concat(
-  format(E'\nLEFT JOIN summary_cte_self ON %1$I.', cte_name)
-  || quote_ident(msar.get_selectable_pkey_attnum(tab_id)::text)
-  || ' = summary_cte_self.key' ,
+  CASE WHEN include_self THEN
+    format(E'\nLEFT JOIN summary_cte_self ON %1$I.', cte_name)
+    || quote_ident(msar.get_selectable_pkey_attnum(tab_id)::text)
+    || ' = summary_cte_self.key'
+  END,
   string_agg(
     format(
       $j$
@@ -5167,16 +5183,25 @@ SELECT concat(
     ), ' '
   )
 )
-FROM fkey_map_cte;
-$$ LANGUAGE SQL STABLE RETURNS NULL ON NULL INPUT;
+FROM fkey_map_cte
+WHERE column_attnums IS NULL
+  OR conkey::text IN (
+    SELECT requested_attnum.value
+    FROM jsonb_array_elements_text(column_attnums) AS requested_attnum(value)
+  );
+$$ LANGUAGE SQL STABLE;
 
 
 CREATE OR REPLACE FUNCTION
-msar.build_summary_json_expr_for_table(tab_id oid) RETURNS TEXT AS $$/*
+msar.build_summary_json_expr_for_table(
+  tab_id oid,
+  column_attnums jsonb DEFAULT NULL
+) RETURNS TEXT AS $$/*
 Build a JSON object with the results of summarizing linked records.
 
 Args:
   tab_oid: The OID of the table for which we're getting linked record summaries.
+  column_attnums: Optional JSON array of FK attnums for which summaries are needed.
 */
 WITH fkey_map_cte AS (SELECT * FROM msar.get_fkey_map_table(tab_id))
 SELECT string_agg(
@@ -5191,8 +5216,13 @@ SELECT string_agg(
     conkey
   ), ', '
 )
-FROM fkey_map_cte;
-$$ LANGUAGE SQL STABLE RETURNS NULL ON NULL INPUT;
+FROM fkey_map_cte
+WHERE column_attnums IS NULL
+  OR conkey::text IN (
+    SELECT requested_attnum.value
+    FROM jsonb_array_elements_text(column_attnums) AS requested_attnum(value)
+  );
+$$ LANGUAGE SQL STABLE;
 
 
 CREATE OR REPLACE FUNCTION
@@ -5419,13 +5449,19 @@ BEGIN
     ),
     /* %8 */ msar.build_linked_record_summaries_ctes(
       tab_id,
-      table_record_summary_templates
+      table_record_summary_templates,
+      column_attnums
     ),
-    /* %9 */ msar.build_summary_join_expr_for_table(tab_id, 'enriched_results_cte'),
+    /* %9 */ msar.build_summary_join_expr_for_table(
+      tab_id,
+      'enriched_results_cte',
+      column_attnums,
+      return_record_summaries
+    ),
     /* %10 */ COALESCE(
       NULLIF(
         concat_ws(', ',
-          msar.build_summary_json_expr_for_table(tab_id),
+          msar.build_summary_json_expr_for_table(tab_id, column_attnums),
           CASE WHEN return_record_summaries
           THEN msar.build_self_summary_json_expr(tab_id)
           END
