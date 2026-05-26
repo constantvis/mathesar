@@ -5069,8 +5069,8 @@ SELECT
   )
 FROM msar.get_fkey_map_table(tab_id)
 WHERE column_attnums IS NULL
-  OR conkey::text IN (
-    SELECT requested_attnum.value
+  OR conkey IN (
+    SELECT requested_attnum.value::smallint
     FROM jsonb_array_elements_text(column_attnums) AS requested_attnum(value)
   )
 $$ LANGUAGE SQL STABLE;
@@ -5185,8 +5185,8 @@ SELECT concat(
 )
 FROM fkey_map_cte
 WHERE column_attnums IS NULL
-  OR conkey::text IN (
-    SELECT requested_attnum.value
+  OR conkey IN (
+    SELECT requested_attnum.value::smallint
     FROM jsonb_array_elements_text(column_attnums) AS requested_attnum(value)
   );
 $$ LANGUAGE SQL STABLE;
@@ -5218,8 +5218,8 @@ SELECT string_agg(
 )
 FROM fkey_map_cte
 WHERE column_attnums IS NULL
-  OR conkey::text IN (
-    SELECT requested_attnum.value
+  OR conkey IN (
+    SELECT requested_attnum.value::smallint
     FROM jsonb_array_elements_text(column_attnums) AS requested_attnum(value)
   );
 $$ LANGUAGE SQL STABLE;
