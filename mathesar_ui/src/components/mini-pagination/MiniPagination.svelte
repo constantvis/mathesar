@@ -3,7 +3,10 @@
   import { _ } from 'svelte-i18n';
 
   import Select from '@mathesar/component-library/select/Select.svelte';
-  import Pagination from '@mathesar/utils/Pagination';
+  import Pagination, {
+    UNLIMITED_PAGE_SIZE,
+    sortPageSizeOptions,
+  } from '@mathesar/utils/Pagination';
   import {
     AttachableDropdown,
     Button,
@@ -38,8 +41,13 @@
     if (pageSizeOptions === undefined) return undefined;
     if (pageSizeOptions.length < 2) return undefined;
     const uniqueOptions = new Set([...pageSizeOptions, size]);
-    return [...uniqueOptions].sort((a, b) => a - b);
+    return sortPageSizeOptions(uniqueOptions);
   })();
+
+  function getPageSizeLabel(option: number | undefined): string {
+    if (option === UNLIMITED_PAGE_SIZE) return $_('unlimited');
+    return numberFormatter.format(option ?? 0);
+  }
 
   function togglePageJumper() {
     pageJumperIsOpen = !pageJumperIsOpen;
@@ -122,8 +130,9 @@
           <Select
             options={allPageSizeOptions}
             value={size}
+            getLabel={getPageSizeLabel}
             on:change={({ detail: newSize }) => {
-              if (!newSize) return;
+              if (newSize === undefined) return;
               changePageSize(newSize);
               close();
             }}

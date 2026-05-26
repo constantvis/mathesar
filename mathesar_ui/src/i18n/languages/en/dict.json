@@ -884,6 +884,7 @@
   "unique": "Unique",
   "unique_key_help": "A unique constraint ensures that each record in a column is unique.",
   "unknown_error": "An unknown error occurred.",
+  "unlimited": "Unlimited",
   "unsaved_changes": "Unsaved Changes",
   "untitled": "Untitled",
   "update": "Update",

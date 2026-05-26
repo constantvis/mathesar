@@ -881,6 +881,7 @@
   "unique": "Unique",
   "unique_key_help": "Une contrainte unique garantit que chaque enregistrement d'une colonne est unique.",
   "unknown_error": "Une erreur inconnue s'est produite.",
+  "unlimited": "Illimité",
   "unsaved_changes": "Modifications non enregistrées",
   "untitled": "Sans titre",
   "update": "Mettre à jour",

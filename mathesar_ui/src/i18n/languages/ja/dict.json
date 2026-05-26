@@ -870,6 +870,7 @@
   "unique": "一意",
   "unique_key_help": "一意制約は、列の各レコードが一意であることを保証します。",
   "unknown_error": "未知のエラーが発生しました。",
+  "unlimited": "無制限",
   "unsaved_changes": "未保存の変更",
   "untitled": "無題",
   "update": "更新",

@@ -1,4 +1,5 @@
 const DEFAULT_PAGE_SIZE = 500;
+export const UNLIMITED_PAGE_SIZE = 0;
 
 /**
  * [page, size]
@@ -19,18 +20,35 @@ export default class Pagination {
   readonly rightBound: number;
 
   constructor({ page, size }: { page?: number; size?: number } = {}) {
-    this.page = page ?? 1;
-    this.size = size ?? DEFAULT_PAGE_SIZE;
-    this.offset = (this.page - 1) * this.size;
+    const resolvedSize = size ?? DEFAULT_PAGE_SIZE;
+    this.page = resolvedSize === UNLIMITED_PAGE_SIZE ? 1 : page ?? 1;
+    this.size = resolvedSize;
+    this.offset =
+      this.size === UNLIMITED_PAGE_SIZE ? 0 : (this.page - 1) * this.size;
     this.leftBound = this.offset + 1;
-    this.rightBound = this.offset + this.size;
+    this.rightBound =
+      this.size === UNLIMITED_PAGE_SIZE
+        ? Number.POSITIVE_INFINITY
+        : this.offset + this.size;
   }
 
   recordsRequestParams(): { limit: number; offset: number } {
     return {
-      limit: this.size,
+      limit: this.size === UNLIMITED_PAGE_SIZE ? DEFAULT_PAGE_SIZE : this.size,
       offset: this.offset,
     };
+  }
+
+  recordsRequestParamsAllowingUnlimited(): {
+    limit?: number | null;
+    offset?: number | null;
+  } {
+    return this.size === UNLIMITED_PAGE_SIZE
+      ? { limit: null, offset: null }
+      : {
+          limit: this.size,
+          offset: this.offset,
+        };
   }
 
   terse(): TersePagination {
@@ -45,6 +63,15 @@ export default class Pagination {
   }
 
   getMaxPage(recordCount: number): number {
+    if (this.size === UNLIMITED_PAGE_SIZE) return 1;
     return Math.ceil(recordCount / this.size);
   }
+}
+
+export function sortPageSizeOptions(options: Iterable<number>): number[] {
+  return [...options].sort((a, b) => {
+    if (a === UNLIMITED_PAGE_SIZE) return 1;
+    if (b === UNLIMITED_PAGE_SIZE) return -1;
+    return a - b;
+  });
 }

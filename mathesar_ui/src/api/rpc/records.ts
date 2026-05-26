@@ -82,8 +82,8 @@ export interface GroupingResponse extends Grouping {
 export interface RecordsListParams {
   database_id: number;
   table_oid: number;
-  limit?: number;
-  offset?: number;
+  limit?: number | null;
+  offset?: number | null;
   order?: SortingEntry[];
   grouping?: Grouping;
   filter?: SqlExpr;
@@ -95,7 +95,8 @@ export interface RecordsSearchParams {
   database_id: number;
   table_oid: number;
   search_params: { attnum: number; literal: unknown }[];
-  limit?: number;
+  limit?: number | null;
+  offset?: number | null;
   return_record_summaries?: boolean;
 }
 

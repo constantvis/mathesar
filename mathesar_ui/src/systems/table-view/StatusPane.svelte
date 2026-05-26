@@ -7,12 +7,21 @@
   import { iconAddNew } from '@mathesar/icons';
   import { getTabularDataStoreFromContext } from '@mathesar/stores/table-data';
   import { getFirstEditableColumn } from '@mathesar/stores/table-data/processedColumns';
-  import Pagination from '@mathesar/utils/Pagination';
+  import Pagination, { UNLIMITED_PAGE_SIZE } from '@mathesar/utils/Pagination';
   import { Select, SpinnerButton } from '@mathesar-component-library';
 
   const tabularData = getTabularDataStoreFromContext();
   const numberFormatter = new Intl.NumberFormat();
-  const pageSizeOptions = [10, 50, 100, 500];
+  const pageSizeOptions = [
+    10,
+    50,
+    100,
+    500,
+    1000,
+    5000,
+    10000,
+    UNLIMITED_PAGE_SIZE,
+  ];
   const breakpoints = {
     miniPaginationDropdownIndicator: 430,
     newAndUnsavedRecordCounts: 450,
@@ -61,6 +70,11 @@
 
   function refresh() {
     void $tabularData.refresh();
+  }
+
+  function getPageSizeLabel(option: number | undefined): string {
+    if (option === UNLIMITED_PAGE_SIZE) return $_('unlimited');
+    return numberFormatter.format(option ?? 0);
   }
 
   async function addRecord() {
@@ -158,6 +172,7 @@
             triggerAppearance="secondary"
             options={pageSizeOptions}
             value={$pagination.size}
+            getLabel={getPageSizeLabel}
             on:change={(e) => {
               $pagination = new Pagination({
                 ...$pagination,

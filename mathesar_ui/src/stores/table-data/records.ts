@@ -299,7 +299,7 @@ export class RecordsData {
 
       const recordsListParams: RecordsListParams = {
         ...this.apiContext,
-        ...params.pagination.recordsRequestParams(),
+        ...params.pagination.recordsRequestParamsAllowingUnlimited(),
         ...params.sorting.recordsRequestParamsIncludingGrouping(
           params.grouping,
         ),
@@ -314,7 +314,7 @@ export class RecordsData {
       const fuzzySearchParams = params.searchFuzzy.getSearchParams();
       const recordSearchParams: RecordsSearchParams = {
         ...this.apiContext,
-        ...params.pagination.recordsRequestParams(),
+        ...params.pagination.recordsRequestParamsAllowingUnlimited(),
         search_params: fuzzySearchParams,
         return_record_summaries: this.loadIntrinsicRecordSummaries,
       };

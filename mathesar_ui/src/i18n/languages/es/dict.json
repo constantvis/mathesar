@@ -881,6 +881,7 @@
   "unique": "Único",
   "unique_key_help": "Una restricción única asegura que cada registro en una columna sea único",
   "unknown_error": "Ocurrió un error desconocido",
+  "unlimited": "Ilimitado",
   "unsaved_changes": "Cambios no guardados",
   "untitled": "Sin título",
   "update": "Actualizar",
