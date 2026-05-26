@@ -15,6 +15,7 @@ def list_records_from_table(
     order=None,
     filter=None,
     group=None,
+    column_attnums=None,
     joined_columns=None,
     return_record_summaries=False,
     table_record_summary_templates=None,
@@ -35,6 +36,7 @@ def list_records_from_table(
         order: An array of ordering definition objects.
         filter: An array of filter definition objects.
         group: An array of group definition objects.
+        column_attnums: Optional list of regular table column attnums to return.
         joined_columns: An array of dict(s) that include an "alias" and "join_path" where,
             "join_path" represents linkages via a simple many-to-many mapping to a column in another table.
         return_record_summaries: Whether to return self record summaries.
@@ -52,6 +54,7 @@ def list_records_from_table(
         _json_or_none(joined_columns),
         return_record_summaries,
         _json_or_none(table_record_summary_templates),
+        _json_or_none(column_attnums),
     ).fetchone()[0]
     return result
 

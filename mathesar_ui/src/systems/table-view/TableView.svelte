@@ -248,6 +248,11 @@
     sheetViewportWidth,
     pinnedColumnIds: pinnedRenderedColumnIds,
   });
+  $: if (sheetViewportWidth > 0 && renderedDisplayedColumns.length > 0) {
+    recordsData.setColumnProjection(
+      renderedDisplayedColumns.map(([columnId]) => columnId),
+    );
+  }
   $: maybeApplyWideTableDefaultHiddenColumns({
     tableOid: table.oid,
     allColumnsMap: $allColumns,

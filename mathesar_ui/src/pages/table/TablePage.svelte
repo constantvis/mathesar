@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { tick } from 'svelte';
+  import { onDestroy, tick } from 'svelte';
   import { _ } from 'svelte-i18n';
   import { router } from 'tinro';
 
@@ -36,17 +36,33 @@
   export let table: Table;
 
   let sheetElement: HTMLElement;
+  let meta: Meta;
+  let tabularData: TabularData;
+  let tabularDataKey = '';
 
   $: ({ query } = $router);
-  $: meta = Meta.fromSerialization(query[metaSerializationQueryKey] ?? '');
   $: ({ currentRolePrivileges } = table.currentAccess);
-  $: tabularData = new TabularData({
-    database: table.schema.database,
-    table,
-    meta,
-  });
+  $: {
+    const metaSerializationFromQuery = query[metaSerializationQueryKey] ?? '';
+    const nextTabularDataKey = `${table.oid}:${metaSerializationFromQuery}`;
+    if (nextTabularDataKey !== tabularDataKey) {
+      tabularData?.destroy();
+      meta = Meta.fromSerialization(metaSerializationFromQuery);
+      tabularData = new TabularData({
+        database: table.schema.database,
+        table,
+        meta,
+        requireColumnProjection: true,
+      });
+      tabularDataKey = nextTabularDataKey;
+      tabularDataStore.set(tabularData);
+    }
+  }
   $: ({ isLoading, selection } = tabularData);
-  $: tabularDataStore.set(tabularData);
+
+  onDestroy(() => {
+    tabularData?.destroy();
+  });
 
   async function activateFirstDataCell() {
     selection.updateWithoutFocus((s) => s.ofFirstDataCell());
@@ -64,7 +80,10 @@
   }
 
   function handleMetaSerializationChange(s: string) {
-    router.location.query.set(metaSerializationQueryKey, s);
+    const currentSerialization = query[metaSerializationQueryKey] ?? '';
+    if (currentSerialization !== s) {
+      router.location.query.set(metaSerializationQueryKey, s);
+    }
   }
   $: metaSerialization = tabularData.meta.serialization;
   $: handleMetaSerializationChange($metaSerialization);

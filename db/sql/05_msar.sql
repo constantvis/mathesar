@@ -4745,7 +4745,10 @@ $$ LANGUAGE SQL STABLE RETURNS NULL ON NULL INPUT;
 
 
 CREATE OR REPLACE FUNCTION
-msar.build_selectable_column_expr(tab_id oid) RETURNS text AS $$/*
+msar.build_selectable_column_expr(
+  tab_id oid,
+  column_attnums jsonb DEFAULT NULL
+) RETURNS text AS $$/*
 Build an SQL select-target expression of only columns to which the user has access.
 
 Given columns with attnums 2, 3, and 4, and assuming the user has access only to columns 2 and 4,
@@ -4755,9 +4758,23 @@ msar.format_data("column_name") AS "2", msar.format_data("another_column_name") 
 
 Args:
   tab_id: The OID of the table containing the columns to select.
+  column_attnums: Optional JSON array of attnums to include in the output.
 */
-SELECT msar.build_column_expr(msar.get_relation_name(tab_id), msar.get_selectable_columns(tab_id));
-$$ LANGUAGE SQL STABLE RETURNS NULL ON NULL INPUT;
+SELECT msar.build_column_expr(
+  msar.get_relation_name(tab_id),
+  CASE
+    WHEN column_attnums IS NULL THEN msar.get_selectable_columns(tab_id)
+    ELSE (
+      SELECT jsonb_object_agg(selectable_column.key, selectable_column.value)
+      FROM jsonb_each_text(msar.get_selectable_columns(tab_id)) AS selectable_column
+      WHERE selectable_column.key IN (
+        SELECT requested_attnum.value
+        FROM jsonb_array_elements_text(column_attnums) AS requested_attnum(value)
+      )
+    )
+  END
+);
+$$ LANGUAGE SQL STABLE;
 
 
 CREATE OR REPLACE FUNCTION msar.get_default_summary_column(tab_id oid) RETURNS smallint AS $$/*
@@ -5200,7 +5217,8 @@ CREATE OR REPLACE FUNCTION msar.build_record_list_query_components_with_ctes(
   order_ jsonb,
   filter_ jsonb,
   group_ jsonb,
-  joined_columns jsonb
+  joined_columns jsonb,
+  column_attnums jsonb DEFAULT NULL
 ) RETURNS jsonb AS $$/*
   Constructs the components necessary for generating enriched query results,
   including expressions, clauses, selectable_column list, and CTEs, for a table.
@@ -5214,6 +5232,7 @@ CREATE OR REPLACE FUNCTION msar.build_record_list_query_components_with_ctes(
     group_: An array of group definition objects
     joined_columns: (optional) A jsonb list defining columns joined via a simple many-to-many linkage.
       See msar.get_joined_columns_expr_json for more details.
+    column_attnums: (optional) A jsonb array of regular table column attnums to return.
 
   Behavior:
     Fetches metadata about the table (selectable_column list, schema name, table name etc.,)
@@ -5232,7 +5251,7 @@ BEGIN
   SELECT jsonb_build_object(
     'relation_name', msar.get_relation_name(tab_id),
     'relation_schema_name', msar.get_relation_schema_name(tab_id),
-    'selectable_columns_expr', msar.build_selectable_column_expr(tab_id),
+    'selectable_columns_expr', msar.build_selectable_column_expr(tab_id, column_attnums),
     'grouping_expr', msar.build_grouping_expr(tab_id, group_),
     'order_by_expr', msar.build_order_by_expr(tab_id, order_),
     'where_clause', msar.build_where_clause(tab_id, filter_)
@@ -5288,7 +5307,8 @@ msar.list_records_from_table(
   group_ jsonb,
   joined_columns jsonb DEFAULT NULL,
   return_record_summaries boolean DEFAULT false,
-  table_record_summary_templates jsonb DEFAULT NULL
+  table_record_summary_templates jsonb DEFAULT NULL,
+  column_attnums jsonb DEFAULT NULL
 ) RETURNS jsonb AS $$/*
 Get records from a table. Only columns to which the user has access are returned.
 
@@ -5304,6 +5324,7 @@ Args:
   return_record_summaries : Whether to return a summary for each record listed.
   table_record_summary_templates: (optional) A JSON object that maps table OIDs to record summary
     templates.
+  column_attnums: (optional) A JSON array of regular table column attnums to return.
 
 The order definition objects should have the form
   {"attnum": <int>, "direction": <text>}
@@ -5319,7 +5340,8 @@ BEGIN
     order_,
     filter_,
     group_,
-    joined_columns
+    joined_columns,
+    column_attnums
   ) INTO expr_and_ctes;
 
   EXECUTE format(

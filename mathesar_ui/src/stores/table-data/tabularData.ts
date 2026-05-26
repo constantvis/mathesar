@@ -117,6 +117,7 @@ export interface TabularDataProps {
    * we need them for the records within the record selector.
    */
   loadIntrinsicRecordSummaries?: boolean;
+  requireColumnProjection?: boolean;
 }
 
 export class TabularData {
@@ -191,6 +192,7 @@ export class TabularData {
       columnsDataStore: this.columnsDataStore,
       contextualFilters,
       loadIntrinsicRecordSummaries: props.loadIntrinsicRecordSummaries,
+      requireColumnProjection: props.requireColumnProjection,
     });
     this.display = new Display({
       meta: this.meta,

@@ -60,6 +60,7 @@
     linkedRecordSummaries,
     joinedRecordSummaries,
     fileManifests,
+    fetchedRecordRows,
     newRecords,
   } = recordsData);
   $: ({ column } = effectiveColumnFabric);
@@ -158,7 +159,8 @@
         value: rs,
       })}
     {joinedRecordSummariesMap}
-    showAsSkeleton={$recordsDataState === States.Loading}
+    showAsSkeleton={$recordsDataState === States.Loading &&
+      $fetchedRecordRows.length === 0}
     disabled={!isEditable}
     on:movementKeyDown={({ detail }) =>
       handleKeyboardEventOnCell(detail.originalEvent, selection)}

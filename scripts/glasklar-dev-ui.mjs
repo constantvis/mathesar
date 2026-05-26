@@ -12,6 +12,7 @@ const VITE_HOST = process.env.MATHESAR_VITE_HOST ?? "127.0.0.1";
 const VITE_PORT = Number(process.env.MATHESAR_VITE_PORT ?? 3000);
 const VITE_ORIGIN = `http://${VITE_HOST}:${VITE_PORT}`;
 const UI_DIR = new URL("../mathesar_ui/", import.meta.url);
+const TRACE_RPC = process.env.MATHESAR_TRACE_RPC !== "0";
 
 let proxy;
 
@@ -67,7 +68,100 @@ function rewriteAppHtml(body) {
     .replace("</body>", `    ${devScripts}\n  </body>`);
 }
 
-function proxyRequest(clientReq, clientRes) {
+function getRpcRequestInfo(rawBody) {
+  try {
+    const parsed = JSON.parse(rawBody.toString("utf8"));
+    const firstCall = Array.isArray(parsed) ? parsed[0] : parsed;
+    const columnAttnums = Array.isArray(firstCall?.params?.column_attnums)
+      ? firstCall.params.column_attnums
+      : undefined;
+    return {
+      batched: Array.isArray(parsed),
+      batchSize: Array.isArray(parsed) ? parsed.length : undefined,
+      method: firstCall?.method,
+      limit: firstCall?.params?.limit,
+      offset: firstCall?.params?.offset,
+      tableOid: firstCall?.params?.table_oid,
+      columnAttnums,
+      projectedColumnCount: columnAttnums?.length,
+    };
+  } catch {
+    return {};
+  }
+}
+
+function getRpcResponseInfo(rawBody) {
+  try {
+    const parsed = JSON.parse(rawBody.toString("utf8"));
+    const firstResponse = Array.isArray(parsed) ? parsed[0] : parsed;
+    const result = firstResponse?.result;
+    const firstRow = result?.results?.[0];
+    return {
+      resultRows: Array.isArray(result?.results) ? result.results.length : undefined,
+      resultColumnsPerRow: firstRow ? Object.keys(firstRow).length : undefined,
+      totalCount: result?.count,
+      linkedSummaryCells: result?.linked_record_summaries
+        ? Object.keys(result.linked_record_summaries).length
+        : undefined,
+      joinedSummaryCells: result?.joined_record_summaries
+        ? Object.keys(result.joined_record_summaries).length
+        : undefined,
+      error: firstResponse?.error?.message,
+    };
+  } catch {
+    return {};
+  }
+}
+
+function logRpcRequest({ clientReq, reqInfo, resInfo, statusCode, bytes, elapsedMs }) {
+  if (!TRACE_RPC || !clientReq.url?.startsWith("/api/rpc/v0/")) {
+    return;
+  }
+  const summary = {
+    method: reqInfo.method,
+    table_oid: reqInfo.tableOid,
+    limit: reqInfo.limit,
+    offset: reqInfo.offset,
+    projected_columns: reqInfo.projectedColumnCount,
+    batched: reqInfo.batched,
+    batch_size: reqInfo.batchSize,
+    status: statusCode,
+    ms: elapsedMs,
+    bytes,
+    ...resInfo,
+  };
+  console.log(`[rpc] ${JSON.stringify(summary)}`);
+}
+
+function shouldFilterRecordRows(reqInfo, responseHeaders) {
+  const contentType = String(responseHeaders["content-type"] ?? "");
+  return (
+    (reqInfo.method === "records.list" || reqInfo.method === "records.search") &&
+    Array.isArray(reqInfo.columnAttnums) &&
+    reqInfo.columnAttnums.length > 0 &&
+    contentType.includes("application/json")
+  );
+}
+
+function filterRecordRows(rawBody, reqInfo) {
+  const parsed = JSON.parse(rawBody.toString("utf8"));
+  const responses = Array.isArray(parsed) ? parsed : [parsed];
+  const allowedColumns = new Set(reqInfo.columnAttnums.map(String));
+
+  for (const response of responses) {
+    const rows = response?.result?.results;
+    if (!Array.isArray(rows)) continue;
+    response.result.results = rows.map((row) =>
+      Object.fromEntries(
+        Object.entries(row).filter(([columnId]) => allowedColumns.has(columnId)),
+      ),
+    );
+  }
+
+  return Buffer.from(JSON.stringify(Array.isArray(parsed) ? responses : responses[0]));
+}
+
+function proxyBufferedRequest(clientReq, clientRes, requestBody) {
   const headers = {
     ...clientReq.headers,
     "accept-encoding": "identity",
@@ -109,8 +203,32 @@ function proxyRequest(clientReq, clientRes) {
           return;
         }
 
+        let responseBody = rawBody;
+        if (shouldFilterRecordRows(reqInfo, responseHeaders)) {
+          try {
+            responseBody = filterRecordRows(rawBody, reqInfo);
+          } catch (error) {
+            console.warn(`[proxy] record response filter failed: ${error.message}`);
+          }
+        }
+
+        if (responseBody !== rawBody) {
+          responseHeaders["content-length"] = String(responseBody.length);
+          delete responseHeaders["content-encoding"];
+        }
+
+        const elapsedMs = Date.now() - startedAt;
+        logRpcRequest({
+          clientReq,
+          reqInfo,
+          resInfo: getRpcResponseInfo(responseBody),
+          statusCode: upstreamRes.statusCode ?? 200,
+          bytes: responseBody.length,
+          elapsedMs,
+        });
+
         clientRes.writeHead(upstreamRes.statusCode ?? 200, responseHeaders);
-        clientRes.end(rawBody);
+        clientRes.end(responseBody);
       });
     },
   );
@@ -120,7 +238,21 @@ function proxyRequest(clientReq, clientRes) {
     clientRes.end(`Proxy error: ${error.message}`);
   });
 
-  clientReq.pipe(upstreamReq);
+  const startedAt = Date.now();
+  const reqInfo = getRpcRequestInfo(requestBody);
+  upstreamReq.end(requestBody);
+}
+
+function proxyRequest(clientReq, clientRes) {
+  const requestChunks = [];
+  clientReq.on("data", (chunk) => requestChunks.push(chunk));
+  clientReq.on("end", () => {
+    proxyBufferedRequest(clientReq, clientRes, Buffer.concat(requestChunks));
+  });
+  clientReq.on("error", (error) => {
+    clientRes.writeHead(400, { "content-type": "text/plain; charset=utf-8" });
+    clientRes.end(`Request error: ${error.message}`);
+  });
 }
 
 const vite = startVite();

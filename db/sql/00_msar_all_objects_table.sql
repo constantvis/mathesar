@@ -609,6 +609,7 @@ INSERT INTO msar.all_mathesar_objects VALUES
   ('msar', 'msar.build_order_by_expr(oid,jsonb)', 'FUNCTION', NULL),
   ('msar', 'msar.build_record_list_query_components_with_ctes(oid,integer,integer,jsonb,jsonb,jsonb)', 'FUNCTION', NULL),
   ('msar', 'msar.build_record_list_query_components_with_ctes(oid,integer,integer,jsonb,jsonb,jsonb,jsonb)', 'FUNCTION', NULL),
+  ('msar', 'msar.build_record_list_query_components_with_ctes(oid,integer,integer,jsonb,jsonb,jsonb,jsonb,jsonb)', 'FUNCTION', NULL),
   ('msar', 'msar.build_record_summary_query_for_table(oid,smallint,jsonb)', 'FUNCTION', NULL),
   ('msar', 'msar.build_record_summary_query_from_template(oid,smallint,jsonb)', 'FUNCTION', NULL),
   ('msar', 'msar.build_results_eq_cte_expr(oid,text,jsonb)', 'FUNCTION', NULL),
@@ -618,6 +619,7 @@ INSERT INTO msar.all_mathesar_objects VALUES
   ('msar', 'msar.build_revoke_membership_expr(regrole,oid[])', 'FUNCTION', NULL),
   ('msar', 'msar.build_schema_privilege_replace_expr(regnamespace,regrole,jsonb)', 'FUNCTION', NULL),
   ('msar', 'msar.build_selectable_column_expr(oid)', 'FUNCTION', NULL),
+  ('msar', 'msar.build_selectable_column_expr(oid,jsonb)', 'FUNCTION', NULL),
   ('msar', 'msar.build_self_summary_json_expr(oid)', 'FUNCTION', NULL),
   ('msar', 'msar.build_single_insert_expr(oid,jsonb)', 'FUNCTION', NULL),
   ('msar', 'msar.build_source_update_cte_join_condition_expr(regclass,smallint,smallint[],text,text)', 'FUNCTION', NULL),
@@ -1170,6 +1172,7 @@ INSERT INTO msar.all_mathesar_objects VALUES
   ('msar', 'msar.list_records_from_table(oid,integer,integer,jsonb,jsonb,jsonb,boolean)', 'FUNCTION', NULL),
   ('msar', 'msar.list_records_from_table(oid,integer,integer,jsonb,jsonb,jsonb,boolean,jsonb)', 'FUNCTION', NULL),
   ('msar', 'msar.list_records_from_table(oid,integer,integer,jsonb,jsonb,jsonb,jsonb,boolean,jsonb)', 'FUNCTION', NULL),
+  ('msar', 'msar.list_records_from_table(oid,integer,integer,jsonb,jsonb,jsonb,jsonb,boolean,jsonb,jsonb)', 'FUNCTION', NULL),
   ('msar', 'msar.list_roles()', 'FUNCTION', NULL),
   ('msar', 'msar.list_schema_privileges(regnamespace)', 'FUNCTION', NULL),
   ('msar', 'msar.list_schema_privileges_for_current_role(regnamespace)', 'FUNCTION', NULL),
@@ -1250,4 +1253,3 @@ ALTER TABLE ONLY msar.all_mathesar_objects
 --
 -- PostgreSQL database dump complete
 --
-

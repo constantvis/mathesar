@@ -1,4 +1,10 @@
-import { type Readable, type Writable, derived, writable } from 'svelte/store';
+import {
+  type Readable,
+  type Writable,
+  derived,
+  get,
+  writable,
+} from 'svelte/store';
 
 import type { RequestStatus } from '@mathesar/api/rest/utils/requestUtils';
 import type { RpcError } from '@mathesar/packages/json-rpc-client-builder';
@@ -291,7 +297,12 @@ export class Meta {
 
     const { pagination } = this;
     function goToFirstPage() {
-      pagination.update(($p) => new Pagination({ size: $p.size, page: 1 }));
+      const currentPagination = get(pagination);
+      if (currentPagination.page !== 1) {
+        pagination.set(
+          new Pagination({ size: currentPagination.size, page: 1 }),
+        );
+      }
     }
 
     this.cleanupFunctions.push(

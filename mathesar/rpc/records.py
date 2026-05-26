@@ -308,6 +308,7 @@ def list_(
         order: list[OrderBy] = None,
         filter: Filter = None,
         grouping: Grouping = None,
+        column_attnums: list[int] = None,
         joined_columns: list[dict] = None,
         return_record_summaries: bool = False,
         **kwargs
@@ -324,6 +325,8 @@ def list_(
         order: An array of ordering definition objects.
         filter: An array of filter definition objects.
         grouping: An array of group definition objects.
+        column_attnums: Optional list of regular table column attnums to return.
+            Sorting, filtering, and grouping may still use other columns.
         joined_columns: An array of dict(s) that include an "alias" and "join_path" where
             "join_path" represents linkages via a simple many-to-many mapping to a column in another table.
         return_record_summaries: Whether to return summaries of retrieved
@@ -343,6 +346,7 @@ def list_(
             order=order,
             filter=filter,
             group=grouping,
+            column_attnums=column_attnums,
             joined_columns=joined_columns,
             return_record_summaries=return_record_summaries,
             table_record_summary_templates=get_table_record_summary_templates(

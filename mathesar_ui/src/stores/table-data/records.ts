@@ -19,6 +19,7 @@ import type {
   RecordsResponse,
   RecordsSearchParams,
   ResultValue,
+  SqlExpr,
 } from '@mathesar/api/rpc/records';
 import { parseCellId } from '@mathesar/components/sheet/cellIds';
 import type { Database } from '@mathesar/models/Database';
@@ -76,12 +77,54 @@ export interface RecordsRequestParamsData {
   joining: Joining;
 }
 
+function addSqlExprAttnums(expr: SqlExpr | undefined, attnums: Set<number>) {
+  if (!expr) return;
+  if (expr.type === 'attnum') {
+    attnums.add(expr.value);
+  }
+  if ('args' in expr) {
+    expr.args.forEach((arg) => addSqlExprAttnums(arg, attnums));
+  }
+}
+
+function getProjectedColumnAttnums(
+  projectedColumnAttnums: number[] | undefined,
+  pkColumn: RawColumnWithMetadata | undefined,
+  params: RecordsRequestParamsData,
+): number[] | undefined {
+  if (projectedColumnAttnums === undefined) {
+    return undefined;
+  }
+  const attnums = new Set(projectedColumnAttnums);
+  if (pkColumn) {
+    attnums.add(pkColumn.id);
+  }
+  for (const [columnId] of params.sorting) {
+    attnums.add(Number(columnId));
+  }
+  params.grouping.entries.forEach(({ columnId }) => {
+    attnums.add(Number(columnId));
+  });
+  for (const [columnId] of params.searchFuzzy) {
+    attnums.add(Number(columnId));
+  }
+  addSqlExprAttnums(params.filtering.sqlExpr, attnums);
+  return [...attnums].filter(Number.isFinite);
+}
+
 export interface TableRecordsData {
   state: States;
   error?: string;
   rows: Row[];
   totalCount: number;
   grouping?: RecordGrouping;
+}
+
+interface FetchOptions {
+  clearNewRecords?: boolean;
+  setLoadingState?: boolean;
+  clearMetaStatuses?: boolean;
+  skipIfParamsUnchanged?: boolean;
 }
 
 /**
@@ -202,6 +245,20 @@ export class RecordsData {
 
   private promise: CancellablePromise<RecordsResponse> | undefined;
 
+  private latestFetchKey: string | undefined;
+
+  private fetchInProgress = false;
+
+  private queuedFetchOptions: FetchOptions | undefined;
+
+  private projectedColumnAttnums: Writable<number[] | undefined>;
+
+  private columnProjectionUpdateHandle: ReturnType<typeof setTimeout> | undefined;
+
+  private queuedColumnProjectionKey: string | undefined;
+
+  private requireColumnProjection: boolean;
+
   // @ts-ignore: https://github.com/centerofci/mathesar/issues/1055
   private createPromises: Map<unknown, CancellablePromise<unknown>>;
 
@@ -224,6 +281,7 @@ export class RecordsData {
     columnsDataStore,
     contextualFilters,
     loadIntrinsicRecordSummaries,
+    requireColumnProjection,
   }: {
     database: Pick<Database, 'id'>;
     table: Pick<Table, 'oid'>;
@@ -231,6 +289,7 @@ export class RecordsData {
     columnsDataStore: ColumnsDataStore;
     contextualFilters: Map<string, number | string>;
     loadIntrinsicRecordSummaries?: boolean;
+    requireColumnProjection?: boolean;
   }) {
     this.apiContext = { database_id: database.id, table_oid: table.oid };
     this.state = writable(States.Loading);
@@ -243,8 +302,8 @@ export class RecordsData {
     this.columnsDataStore = columnsDataStore;
     this.contextualFilters = contextualFilters;
     this.loadIntrinsicRecordSummaries = loadIntrinsicRecordSummaries;
-
-    void this.fetch();
+    this.requireColumnProjection = requireColumnProjection ?? false;
+    this.projectedColumnAttnums = writable(undefined);
 
     this.selectableRowsMap = derived(
       [this.fetchedRecordRows, this.newRecords],
@@ -262,43 +321,82 @@ export class RecordsData {
 
     // TODO: Create base class to abstract subscriptions and unsubscriptions
     this.requestParamsUnsubscriber =
-      this.meta.recordsRequestParamsData.subscribe(() => {
-        void this.fetch();
+      derived(
+        [this.meta.recordsRequestParamsData, this.projectedColumnAttnums],
+        ([requestParams, projectedColumnAttnums]) => ({
+          requestParams,
+          projectedColumnAttnums,
+        }),
+      ).subscribe(({ projectedColumnAttnums }) => {
+        if (
+          this.requireColumnProjection &&
+          projectedColumnAttnums === undefined
+        ) {
+          return;
+        }
+        void this.fetch({ skipIfParamsUnchanged: true });
       });
   }
 
-  async fetch(
-    opts: {
-      clearNewRecords?: boolean;
-      setLoadingState?: boolean;
-      clearMetaStatuses?: boolean;
-    } = {},
-  ): Promise<void> {
+  setColumnProjection(columnIds: Iterable<string>): void {
+    const next = [...columnIds]
+      .map(Number)
+      .filter(Number.isFinite)
+      .sort((a, b) => a - b);
+    if (next.length === 0) {
+      return;
+    }
+    const nextKey = next.join(',');
+    const current = get(this.projectedColumnAttnums);
+    if (
+      current?.length === next.length &&
+      current.every((attnum, index) => attnum === next[index])
+    ) {
+      return;
+    }
+    if (this.queuedColumnProjectionKey === nextKey) {
+      return;
+    }
+
+    this.queuedColumnProjectionKey = nextKey;
+    if (this.columnProjectionUpdateHandle) {
+      clearTimeout(this.columnProjectionUpdateHandle);
+    }
+    const projectionUpdateDelayMs = current === undefined ? 0 : 500;
+    this.columnProjectionUpdateHandle = setTimeout(() => {
+      this.columnProjectionUpdateHandle = undefined;
+      this.queuedColumnProjectionKey = undefined;
+      const latest = get(this.projectedColumnAttnums);
+      if (
+        latest?.length === next.length &&
+        latest.every((attnum, index) => attnum === next[index])
+      ) {
+        return;
+      }
+      this.projectedColumnAttnums.set(next);
+    }, projectionUpdateDelayMs);
+  }
+
+  async fetch(opts: FetchOptions = {}): Promise<void> {
     const options = {
       clearNewRecords: true,
       setLoadingState: true,
       clearMetaStatuses: true,
+      skipIfParamsUnchanged: false,
       ...opts,
     };
 
-    this.promise?.cancel();
-    this.error.set(undefined);
-
-    if (options.clearNewRecords) {
-      this.newRecords.set([]);
-    }
-    if (options.setLoadingState) {
-      this.state.set(States.Loading);
-    }
-    if (options.clearMetaStatuses) {
-      this.meta.clearAllStatusesAndErrors();
-    }
-
     try {
       const params = get(this.meta.recordsRequestParamsData);
+      const columnAttnums = getProjectedColumnAttnums(
+        get(this.projectedColumnAttnums),
+        get(this.columnsDataStore.pkColumn),
+        params,
+      );
 
       const recordsListParams: RecordsListParams = {
         ...this.apiContext,
+        column_attnums: columnAttnums,
         ...params.pagination.recordsRequestParamsAllowingUnlimited(),
         ...params.sorting.recordsRequestParamsIncludingGrouping(
           params.grouping,
@@ -318,6 +416,39 @@ export class RecordsData {
         search_params: fuzzySearchParams,
         return_record_summaries: this.loadIntrinsicRecordSummaries,
       };
+
+      const fetchKey = JSON.stringify(
+        fuzzySearchParams.length
+          ? ['search', recordSearchParams]
+          : ['list', recordsListParams],
+      );
+      if (options.skipIfParamsUnchanged && fetchKey === this.latestFetchKey) {
+        return undefined;
+      }
+
+      if (this.fetchInProgress) {
+        this.queuedFetchOptions = {
+          ...options,
+          skipIfParamsUnchanged: true,
+        };
+        return undefined;
+      }
+      this.latestFetchKey = fetchKey;
+      this.fetchInProgress = true;
+
+      this.promise?.cancel();
+      this.error.set(undefined);
+      const hasFetchedRows = get(this.fetchedRecordRows).length > 0;
+
+      if (options.clearNewRecords && !hasFetchedRows) {
+        this.newRecords.set([]);
+      }
+      if (options.setLoadingState && !hasFetchedRows) {
+        this.state.set(States.Loading);
+      }
+      if (options.clearMetaStatuses && !hasFetchedRows) {
+        this.meta.clearAllStatusesAndErrors();
+      }
 
       this.promise = fuzzySearchParams.length
         ? api.records.search(recordSearchParams).run()
@@ -348,14 +479,13 @@ export class RecordsData {
           response.download_links,
         );
       }
-      this.fetchedRecordRows.set(
-        response.results.map(
-          (apiRecord) =>
-            new PersistedRecordRow({
-              record: apiRecord,
-            }),
-        ),
+      const fetchedRows = response.results.map(
+        (apiRecord) =>
+          new PersistedRecordRow({
+            record: apiRecord,
+          }),
       );
+      this.fetchedRecordRows.set(fetchedRows);
       this.state.set(States.Done);
       this.grouping.set(grouping);
       this.totalCount.set(totalCount);
@@ -365,6 +495,18 @@ export class RecordsData {
       this.error.set(
         err instanceof Error ? err.message : 'Unable to load records',
       );
+    } finally {
+      this.fetchInProgress = false;
+      if (this.queuedFetchOptions) {
+        const queuedFetchOptions = this.queuedFetchOptions;
+        this.queuedFetchOptions = undefined;
+        if (get(this.fetchedRecordRows).length > 0) {
+          queuedFetchOptions.clearNewRecords = false;
+          queuedFetchOptions.setLoadingState = false;
+          queuedFetchOptions.clearMetaStatuses = false;
+        }
+        void this.fetch(queuedFetchOptions);
+      }
     }
     return undefined;
   }
@@ -909,6 +1051,9 @@ export class RecordsData {
   }
 
   destroy(): void {
+    if (this.columnProjectionUpdateHandle) {
+      clearTimeout(this.columnProjectionUpdateHandle);
+    }
     this.promise?.cancel();
     this.promise = undefined;
 

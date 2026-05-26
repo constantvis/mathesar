@@ -82,6 +82,7 @@ export interface GroupingResponse extends Grouping {
 export interface RecordsListParams {
   database_id: number;
   table_oid: number;
+  column_attnums?: number[] | null;
   limit?: number | null;
   offset?: number | null;
   order?: SortingEntry[];
