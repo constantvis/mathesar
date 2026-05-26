@@ -12,6 +12,7 @@
   import {
     ID_ADD_NEW_COLUMN,
     ID_ROW_CONTROL_COLUMN,
+    type JoinedColumn,
     type ProcessedColumn,
     getTabularDataStoreFromContext,
     isJoinedColumn,
@@ -27,9 +28,10 @@
   export let hasNewColumnButton = false;
   export let columnOrder: string[];
   export let table: Table;
+  export let displayedColumns: Array<[string, ProcessedColumn | JoinedColumn]>;
 
   $: columnOrder = columnOrder ?? [];
-  $: ({ selection, processedColumns, displayedColumns } = $tabularData);
+  $: ({ selection, processedColumns } = $tabularData);
 
   let locationOfFirstDraggedColumn: number | undefined = undefined;
   let selectedColumnIdsOrdered: string[] = [];
@@ -109,7 +111,7 @@
     />
   </SheetOriginCell>
 
-  {#each [...$displayedColumns] as [columnId, columnFabric] (columnId)}
+  {#each displayedColumns as [columnId, columnFabric] (columnId)}
     {@const isSelected = $selection.columnIds.has(columnId)}
     {@const isJoined = isJoinedColumn(columnFabric)}
     <SheetColumnHeaderCell

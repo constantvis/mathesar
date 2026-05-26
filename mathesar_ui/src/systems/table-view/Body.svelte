@@ -7,6 +7,8 @@
   } from '@mathesar/geometry';
   import {
     type DisplayRowDescriptor,
+    type JoinedColumn,
+    type ProcessedColumn,
     type Row as RowType,
     getTabularDataStoreFromContext,
     isGroupHeaderRow,
@@ -20,6 +22,7 @@
   const tabularData = getTabularDataStoreFromContext();
 
   export let usesVirtualList = false;
+  export let displayedColumns: Array<[string, ProcessedColumn | JoinedColumn]>;
 
   $: ({ table, display, canInsertRecords } = $tabularData);
   $: ({ oid } = table);
@@ -73,6 +76,7 @@
             style={item.style}
             row={$displayRowDescriptors[item.index].row}
             rowDescriptor={$displayRowDescriptors[item.index]}
+            {displayedColumns}
           />
         {/if}
       {/each}
@@ -86,6 +90,7 @@
         }}
         row={displayRowDescriptor.row}
         rowDescriptor={displayRowDescriptor}
+        {displayedColumns}
       />
     {/each}
   {/if}

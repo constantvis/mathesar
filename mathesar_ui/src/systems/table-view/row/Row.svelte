@@ -4,6 +4,8 @@
   import {
     type DisplayRowDescriptor,
     ID_ROW_CONTROL_COLUMN,
+    type JoinedColumn,
+    type ProcessedColumn,
     type Row,
     getCellKey,
     getRowSelectionId,
@@ -23,17 +25,12 @@
   export let row: Row;
   export let rowDescriptor: DisplayRowDescriptor;
   export let style: { [key: string]: string | number };
+  export let displayedColumns: Array<[string, ProcessedColumn | JoinedColumn]>;
 
   const tabularData = getTabularDataStoreFromContext();
 
-  $: ({
-    recordsData,
-    meta,
-    processedColumns,
-    selection,
-    canUpdateRecords,
-    displayedColumns,
-  } = $tabularData);
+  $: ({ recordsData, meta, processedColumns, selection, canUpdateRecords } =
+    $tabularData);
   $: ({
     rowStatus,
     rowCreationStatus,
@@ -105,7 +102,7 @@
         fileManifestsForSheet={$fileManifests}
       />
     {:else if isRecordRow(row)}
-      {#each [...$displayedColumns] as [columnId, columnFabric] (columnId)}
+      {#each displayedColumns as [columnId, columnFabric] (columnId)}
         <RowCell
           {selection}
           {row}

@@ -7,9 +7,13 @@
   import type { ColumnMetadata } from '@mathesar/api/rpc/_common/columnDisplayOptions';
   import { ImmutableMap, Spinner } from '@mathesar/component-library';
   import { Sheet } from '@mathesar/components/sheet';
+  import { parseCellId } from '@mathesar/components/sheet/cellIds';
   import { SheetClipboardHandler } from '@mathesar/components/sheet/clipboard';
   import { contextMenuContext } from '@mathesar/contexts/contextMenuContext';
-  import { ROW_HEADER_WIDTH_PX } from '@mathesar/geometry';
+  import {
+    DEFAULT_COLUMN_WIDTH_PX,
+    ROW_HEADER_WIDTH_PX,
+  } from '@mathesar/geometry';
   import { iconPaste } from '@mathesar/icons';
   import type { Table } from '@mathesar/models/Table';
   import { imperativeFilterControllerContext } from '@mathesar/pages/table/ImperativeFilterController';
@@ -19,6 +23,8 @@
   import {
     ID_ADD_NEW_COLUMN,
     ID_ROW_CONTROL_COLUMN,
+    type JoinedColumn,
+    type ProcessedColumn,
     getTabularDataStoreFromContext,
     isJoinedColumn,
   } from '@mathesar/stores/table-data';
@@ -35,6 +41,10 @@
   import { getCustomizedColumnWidths } from './tableViewUtils';
 
   type Context = 'page' | 'widget';
+  type DisplayedColumnEntry = [string, ProcessedColumn | JoinedColumn];
+
+  const COLUMN_VIRTUALIZATION_THRESHOLD = 80;
+  const COLUMN_RENDER_OVERSCAN_PX = 1000;
 
   const tabularData = getTabularDataStoreFromContext();
   const importModal = modal.spawnModalController();
@@ -49,6 +59,7 @@
 
   let tableInspectorTab: ComponentProps<WithTableInspector>['activeTabId'] =
     'table';
+  let sheetViewportWidth = 0;
 
   $: ({ currentRoleOwns } = table.currentAccess);
   $: usesVirtualList = context !== 'widget';
@@ -131,7 +142,78 @@
       .filter(([, col]) => isJoinedColumn(col))
       .map(([id]): [string, number] => [id, 300]),
   ]);
+  function getDisplayedColumnEntries(
+    displayedColumnsMap: Map<string, ProcessedColumn | JoinedColumn>,
+  ): DisplayedColumnEntry[] {
+    return [...displayedColumnsMap] as DisplayedColumnEntry[];
+  }
+
+  function getColumnWidth(columnId: string): number {
+    return columnWidths.get(columnId) ?? DEFAULT_COLUMN_WIDTH_PX;
+  }
+
+  function getRenderedDisplayedColumns({
+    displayedColumns: displayedColumnsMap,
+    sheetColumns: allSheetColumns,
+    horizontalScrollOffset: hScrollOffset,
+    sheetViewportWidth: viewportWidth,
+    pinnedColumnIds,
+  }: {
+    displayedColumns: Map<string, ProcessedColumn | JoinedColumn>;
+    sheetColumns: Array<{ column: { id: string } }>;
+    horizontalScrollOffset: number;
+    sheetViewportWidth: number;
+    pinnedColumnIds: Set<string>;
+  }): DisplayedColumnEntry[] {
+    const entries = getDisplayedColumnEntries(displayedColumnsMap);
+    if (
+      entries.length <= COLUMN_VIRTUALIZATION_THRESHOLD ||
+      viewportWidth <= 0
+    ) {
+      return entries;
+    }
+
+    const viewportStart = Math.max(
+      0,
+      hScrollOffset - COLUMN_RENDER_OVERSCAN_PX,
+    );
+    const viewportEnd =
+      hScrollOffset + viewportWidth + COLUMN_RENDER_OVERSCAN_PX;
+    const renderedColumnIds = new Set<string>();
+    let left = 0;
+
+    allSheetColumns.forEach(({ column }) => {
+      const width = getColumnWidth(column.id);
+      const right = left + width;
+      if (
+        displayedColumnsMap.has(column.id) &&
+        (right >= viewportStart || pinnedColumnIds.has(column.id)) &&
+        (left <= viewportEnd || pinnedColumnIds.has(column.id))
+      ) {
+        renderedColumnIds.add(column.id);
+      }
+      left = right;
+    });
+
+    return entries.filter(([columnId]) => renderedColumnIds.has(columnId));
+  }
+
   $: showTableInspector = $tableInspectorVisible && supportsTableInspector;
+  $: activeColumnId = $selection.activeCellId
+    ? parseCellId($selection.activeCellId).columnId
+    : undefined;
+  $: pinnedRenderedColumnIds = new Set(
+    [...$selection.columnIds, activeColumnId].filter(
+      (id): id is string => typeof id === 'string',
+    ),
+  );
+  $: renderedDisplayedColumns = getRenderedDisplayedColumns({
+    displayedColumns: $displayedColumns,
+    sheetColumns,
+    horizontalScrollOffset: $horizontalScrollOffset,
+    sheetViewportWidth,
+    pinnedColumnIds: pinnedRenderedColumnIds,
+  });
 
   function persistColumnWidths(widthsMap: [string, number | null][]): void {
     function* getChanges(): Generator<[number, ColumnMetadata | null]> {
@@ -154,7 +236,7 @@
     {showTableInspector}
     bind:activeTabId={tableInspectorTab}
   >
-    <div class="sheet-area">
+    <div class="sheet-area" bind:clientWidth={sheetViewportWidth}>
       {#if $processedColumns.size}
         <Sheet
           {clipboardHandler}
@@ -196,8 +278,13 @@
           restrictWidthToRowWidth={!usesVirtualList}
           bind:sheetElement
         >
-          <Header {hasNewColumnButton} {columnOrder} {table} />
-          <Body {usesVirtualList} />
+          <Header
+            {hasNewColumnButton}
+            {columnOrder}
+            {table}
+            displayedColumns={renderedDisplayedColumns}
+          />
+          <Body {usesVirtualList} displayedColumns={renderedDisplayedColumns} />
         </Sheet>
       {:else if $isLoading}
         <div class="loading-sheet">
