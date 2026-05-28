@@ -2698,20 +2698,49 @@
   :root[data-ui-adapter-mode='shadcn']
     .databases-section
     .search-container
+    input,
+  :root[data-ui-adapter-mode='shadcn']
+    .schema-list-wrapper
+    .search-container
+    .input-element,
+  :root[data-ui-adapter-mode='shadcn']
+    .schema-list-wrapper
+    .search-container
     input {
     min-height: 2.2rem;
-    border-color: var(--glasklar-ui-border);
+    /* Soft borderless filled input — sits on the canvas without a hard
+       outline. Border is a hairline that nearly matches surface so it
+       only registers as a defining edge, not a heavy chrome ring. */
+    border: 1px solid color-mix(in srgb, var(--glasklar-ui-border), transparent 50%);
     border-radius: var(--glasklar-ui-radius);
-    background: var(--glasklar-ui-surface-input);
+    background: color-mix(in srgb, var(--glasklar-ui-surface-muted), transparent 30%);
+    backdrop-filter: blur(12px) saturate(1.05);
+    -webkit-backdrop-filter: blur(12px) saturate(1.05);
     color: var(--glasklar-ui-text);
     font-size: 1rem;
+    box-shadow: none;
   }
 
+  :root[data-ui-adapter-mode='shadcn']
+    .databases-section
+    .search-container
+    .input-element:hover,
+  :root[data-ui-adapter-mode='shadcn']
+    .schema-list-wrapper
+    .search-container
+    .input-element:hover {
+    border-color: var(--glasklar-ui-border);
+  }
+
+  :root[data-ui-adapter-mode='shadcn']
+    .databases-section
+    .search-container
+    .input-element:focus-within,
   :root[data-ui-adapter-mode='shadcn']
     .schema-list-wrapper
     .search-container
     .input-element:focus-within {
-    border-color: var(--glasklar-ui-accent);
+    border-color: var(--glasklar-ui-accent-border);
     box-shadow: 0 0 0 2px var(--glasklar-ui-focus-ring);
   }
 
@@ -3443,7 +3472,12 @@
     --color-fg-subtle-1: hsl(240 5% 65%);
     --color-fg-subtle-2: hsl(240 5% 50%);
     --color-fg-faint: hsl(240 5% 58%);
-    --color-fg-light: hsl(0 0% 98%);
+    /* DARK fg-light — consumed by .btn-primary label text. The primary
+       fill is light in dark mode (inverted from light's near-black),
+       so the LABEL must be dark to stay legible. Was hsl(0 0% 98%) →
+       white-on-white invisible labels on "Connect Database", "Create
+       Schema", "Add Collaborator", etc. */
+    --color-fg-light: hsl(240 10% 6%);
     --color-fg-control: hsl(0 0% 98%);
     --color-fg-inverted: hsl(240 10% 6%);
     --color-fg-help: hsl(240 5% 65%);
