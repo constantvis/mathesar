@@ -3,7 +3,6 @@
   import { tick } from 'svelte';
   import { _ } from 'svelte-i18n';
 
-  import DocsLink from '@mathesar/components/DocsLink.svelte';
   import EntityContainerWithFilterBar from '@mathesar/components/EntityContainerWithFilterBar.svelte';
   import WarningBox from '@mathesar/components/message-boxes/WarningBox.svelte';
   import { RichText } from '@mathesar/components/rich-text';
@@ -21,7 +20,6 @@
   import UpgradeDatabaseModal from '@mathesar/systems/databases/upgrade-database/UpgradeDatabaseModal.svelte';
   import {
     Button,
-    Help,
     Icon,
     assertExhaustive,
     filterViaTextQuery,
@@ -72,17 +70,6 @@
 </script>
 
 <div class="databases-list">
-  <h2 class="page-header">
-    {$_('databases')}
-    <Help>
-      <RichText text={$_('databases_list_help')} let:slotName let:translatedArg>
-        {#if slotName === 'docsLink'}
-          <DocsLink page="databases">{translatedArg}</DocsLink>
-        {/if}
-      </RichText>
-    </Help>
-  </h2>
-
   <section class="databases-container">
     {#if countDatabases}
       <EntityContainerWithFilterBar
@@ -190,10 +177,6 @@
 />
 
 <style lang="scss">
-  .page-header {
-    color: var(--color-fg-header);
-  }
-
   .message-area {
     margin-bottom: 1rem;
   }
@@ -227,11 +210,4 @@
     gap: 1rem;
   }
 
-  .databases-list {
-    h2 {
-      font-size: 1.75rem;
-      font-weight: 600;
-      margin-bottom: 1rem;
-    }
-  }
 </style>

@@ -843,6 +843,19 @@
     color: var(--glasklar-ui-text-muted);
   }
 
+  /* Welcome-user line on home page (now lives in subText slot below
+     the "Databases" entity title). Reads as a muted sub-line. */
+  :root[data-ui-adapter-mode='shadcn']
+    .app-secondary-header
+    .welcome {
+    display: block;
+    margin-top: 0.25rem;
+    color: var(--glasklar-ui-text-muted);
+    font-size: var(--glasklar-ui-font-size-button);
+    font-weight: 400;
+    line-height: 1.3;
+  }
+
   /* Resources sidebar on home — was visually dominant: large titles,
      big circle icons, generous spacing. In shadcn it should read as
      secondary chrome, not co-equal with the main Databases section. */

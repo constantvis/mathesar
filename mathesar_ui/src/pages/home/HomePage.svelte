@@ -32,7 +32,11 @@
   }}
 >
   <div class="home-page-header" slot="secondary-header">
-    <AppSecondaryHeader name={$_(welcomeMessage)} />
+    <AppSecondaryHeader name={$_('databases')}>
+      <span slot="subText" class="welcome">
+        {$_(welcomeMessage)}
+      </span>
+    </AppSecondaryHeader>
   </div>
   <div class="content">
     <div class="databases-section">
