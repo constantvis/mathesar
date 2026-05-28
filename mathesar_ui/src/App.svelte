@@ -612,7 +612,9 @@
     --glasklar-ui-footer-height: 2rem;
     --glasklar-ui-footer-padding: 0.18rem 0.5rem;
     --glasklar-ui-inspector-padding: 0.75rem;
-    --glasklar-ui-zebra-tint: hsl(240 5% 97%);
+    /* Single low-alpha overlay so zebra striping sits on top of any
+       cell bg without compounding via mix-blend or token doubling. */
+    --glasklar-ui-zebra-tint: hsl(240 10% 12% / 0.04);
 
     /* legacy alias bridge — these vars are consumed by adapter components */
     --button-border-radius: var(--glasklar-ui-radius);
@@ -3350,13 +3352,12 @@
   /* zebra (no borders, alternating rows)
      Use data-row-parity, not nth-child. The table body is virtualized, so
      nth-child would stripe the currently rendered DOM window, not stable
-     record rows, and the stripe state would visibly jump during scroll. */
-  :root[data-ui-adapter-mode='shadcn'][data-table-style='zebra'] .table-view,
-  :root[data-ui-adapter-mode='shadcn'][data-table-style='zebra-h'] .table-view,
-  :root[data-ui-adapter-mode='shadcn'][data-table-style='zebra-grid']
-    .table-view {
-    --cell-bg-color-row-even: var(--glasklar-ui-zebra-tint);
-  }
+     record rows, and the stripe state would visibly jump during scroll.
+
+     One overlay tint applied via plain `background` only (no token
+     duplication, no mix-blend stacking). The tint is a low-alpha
+     foreground colour so it works against both translucent dark and
+     translucent light surfaces without double-painting. */
   :root[data-ui-adapter-mode='shadcn'][data-table-style='zebra']
     [data-sheet-element='data-row'][data-row-parity='even']
     [data-sheet-element='data-cell']:not([data-cell-active]):not(
@@ -3373,6 +3374,7 @@
       [data-cell-selected]
     ) {
     background: var(--glasklar-ui-zebra-tint);
+    mix-blend-mode: normal;
   }
   :root[data-ui-adapter-mode='shadcn'][data-table-style='zebra'] .table-view {
     --cell-border-horizontal: 1px solid transparent;
@@ -3398,25 +3400,28 @@
      = (0,3,1), so it beats the light-tokens block (0,2,1). */
 
   :root[data-ui-adapter-mode='shadcn'] body.theme-dark {
-    /* surfaces */
-    --color-bg-base: hsl(240 10% 4%);
-    --color-bg-raised-1: hsl(240 6% 8%);
-    --color-bg-raised-2: hsl(240 6% 10%);
-    --color-bg-raised-3: hsl(240 6% 11%);
-    --color-bg-sunken-1: hsl(240 6% 6%);
-    --color-bg-input: hsl(240 6% 10%);
-    --color-bg-control: hsl(240 6% 10%);
+    /* surfaces — translucent base lets the gradient canvas paint
+       through every shadcn surface (combine with backdrop-filter
+       for frosted glass). 80% alpha = clearly dark but the wash
+       and any blurred content behind still register. */
+    --color-bg-base: hsl(240 10% 4% / 80%);
+    --color-bg-raised-1: hsl(240 6% 8% / 80%);
+    --color-bg-raised-2: hsl(240 6% 10% / 80%);
+    --color-bg-raised-3: hsl(240 6% 11% / 80%);
+    --color-bg-sunken-1: hsl(240 6% 6% / 80%);
+    --color-bg-input: hsl(240 6% 10% / 80%);
+    --color-bg-control: hsl(240 6% 10% / 80%);
     --color-bg-control-hover: hsl(240 6% 14%);
     --color-bg-control-active: hsl(240 6% 18%);
-    --color-bg-deep: hsl(240 10% 4%);
+    --color-bg-deep: hsl(240 10% 4% / 80%);
     --color-bg-token: hsl(240 6% 14%);
-    --color-bg-group: hsl(240 6% 8%);
-    --color-bg-filled-input: hsl(240 6% 10%);
-    --color-bg-header: hsl(240 6% 10%);
-    --color-bg-supporting: hsl(240 6% 11%);
+    --color-bg-group: hsl(240 6% 8% / 80%);
+    --color-bg-filled-input: hsl(240 6% 10% / 80%);
+    --color-bg-header: hsl(240 6% 10% / 80%);
+    --color-bg-supporting: hsl(240 6% 11% / 80%);
     --color-bg-highlight: hsl(54 80% 60%);
     --color-bg-highlight-subtle: hsl(54 30% 20%);
-    --card-background: hsl(240 6% 10%);
+    --card-background: hsl(240 6% 10% / 80%);
     --card-border-color: hsl(240 5% 18%);
     --color-modal-overlay: rgba(0, 0, 0, 0.6);
     --color-loading-overlay: rgba(0, 0, 0, 0.5);
@@ -3554,7 +3559,9 @@
     --icon-stroke-color: hsl(0 0% 96%);
 
     /* glasklar aliases recomputed against dark surface */
-    --glasklar-ui-zebra-tint: hsl(240 6% 7%);
+    /* Dark mode zebra: a low-alpha light wash so even rows lift
+       slightly against the dark canvas. */
+    --glasklar-ui-zebra-tint: hsl(0 0% 100% / 0.04);
     --glasklar-ui-text-on-accent: var(--color-fg-inverted);
   }
 
