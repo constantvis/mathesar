@@ -287,6 +287,13 @@
     --color-database-10: hsl(0 0% 100%);
     --color-database-5: hsl(240 5% 98%);
 
+    /* NOTE: --color-brand-15 / --color-database-15 / --color-table-15
+       intentionally NOT overridden — the home welcome banner uses these
+       tints in its gradient and per design feedback the warm-cool blend
+       should stay. The schema-15 neutral override (above) sits next to
+       the legacy salmon/amethyst tints to give the gradient its calm
+       cool-to-warm sweep. */
+
     --color-view: hsl(240 10% 24%);
     --color-view-80: hsl(240 5% 92%);
     --color-view-40: hsl(240 6% 80%);
@@ -478,10 +485,14 @@
     --glasklar-ui-success: var(--color-bg-success);
 
     /* interaction */
+    /* shadcn convention: subtle ring (2px width, ~50% opacity). Was 3px
+       at 65% opacity which read as a heavy outline around every focused
+       input. Lowered both width (in the rules that consume this token)
+       and ring saturation here. */
     --glasklar-ui-focus-ring: color-mix(
       in srgb,
       var(--color-border-control-focused),
-      transparent 35%
+      transparent 60%
     );
     --glasklar-ui-hover: color-mix(
       in srgb,
@@ -575,7 +586,10 @@
     /* spacing */
     --glasklar-ui-radius: 6px;
     --glasklar-ui-radius-lg: 8px;
-    --glasklar-ui-toolbar-gap: 0.25rem;
+    /* was 0.25rem (3.5px) — toolbar chips read as touching. 0.375rem
+       (5.25px) gives a clear seam between Filter/Sort/Group/Hide/Extend
+       without losing the compact-band feel. */
+    --glasklar-ui-toolbar-gap: 0.375rem;
     --glasklar-ui-button-height: 1.875rem;
     --glasklar-ui-button-padding-x: 0.55rem;
     --glasklar-ui-icon-gap: 0.4rem;
@@ -605,19 +619,143 @@
 
   /* === 2. app header + breadcrumbs ==================================== */
 
+  /* Page-level gradient canvas — taken from `SchemaPage.svelte` (the
+     gradient the user explicitly preferred over the home banner's
+     legacy salmon/amethyst). Painted on `.app-layout` so it sits UNDER
+     `.app-layout-header`, the entity title row, the toolbar, the empty
+     gaps between blocks — i.e. it's the canvas, not a banner. Content
+     containers that paint their own surface (sheet, modal, inspector,
+     resource cards) cover it as opaque blocks on top. */
+  :root[data-ui-adapter-mode='shadcn'] .app-layout {
+    background: linear-gradient(
+      135deg,
+      var(--color-schema-10) 10%,
+      var(--color-bg-supporting) 50%,
+      var(--color-schema-15) 90%,
+      var(--color-brand-10) 100%
+    );
+    background-attachment: fixed;
+  }
+
+  /* Top breadcrumb bar — fully transparent. No tint, no blur, no
+     shadow. The canvas gradient is the only paint behind it. */
   :root[data-ui-adapter-mode='shadcn'] .app-layout-header {
-    background: var(--glasklar-ui-app-header-bg);
-    backdrop-filter: blur(14px) saturate(1.08);
-    -webkit-backdrop-filter: blur(14px) saturate(1.08);
+    background: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
   }
 
   :root[data-ui-adapter-mode='shadcn'] .app-header {
-    background: var(--glasklar-ui-app-header-bg);
-    backdrop-filter: blur(14px) saturate(1.08);
-    -webkit-backdrop-filter: blur(14px) saturate(1.08);
+    background: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
     border-bottom: 0;
     box-shadow: none;
     padding: 0 0.75rem;
+  }
+
+  /* Welcome banner on home + schema/database page banners — each ships
+     its own local linear-gradient that competes with the new canvas.
+     Neutralize them so the canvas reads as one continuous wash from
+     breadcrumb through content. */
+  :root[data-ui-adapter-mode='shadcn'] .home-page-header,
+  :root[data-ui-adapter-mode='shadcn'] .schema-page-header,
+  :root[data-ui-adapter-mode='shadcn'] .database-page-header {
+    --AppSecondaryHeader__background: transparent;
+    /* Drop the huge legacy `--lg4` margin/padding that gave these
+       banners a hero-block feel. With the canvas now continuous we
+       just need a calm spacer. */
+    --AppSecondaryHeader__margin-bottom: 1.25rem;
+    background: transparent;
+  }
+
+  :root[data-ui-adapter-mode='shadcn'] .app-secondary-header .content {
+    /* Was 1.25rem top + bottom = 35px of vertical space between top
+       breadcrumb bar and main content. Tightened so pages don't feel
+       like a marketing hero. */
+    padding: 0.6rem 0 0.85rem;
+  }
+
+  /* AppSecondaryHeader entity-name (the "Welcome to Mathesar..." heading
+     on home, "Glasklar" on db / schema pages). Per user direction it
+     should match the visual weight of the "Databases" h2 section title
+     (which the user explicitly liked) so the page header reads as a
+     proper hero. The table page entity-name is styled separately in
+     section 4 (compact toolbar row) and stays small. */
+  :root[data-ui-adapter-mode='shadcn']
+    .app-secondary-header
+    .entity-name {
+    font-size: 1.75rem;
+    font-weight: var(--glasklar-ui-font-weight-header);
+    line-height: 1.2;
+    margin-bottom: 0;
+  }
+
+  :root[data-ui-adapter-mode='shadcn']
+    .app-secondary-header
+    .entity-type-name {
+    font-size: var(--glasklar-ui-font-size-label);
+    color: var(--glasklar-ui-text-muted);
+  }
+
+  /* Resources sidebar on home — was visually dominant: large titles,
+     big circle icons, generous spacing. In shadcn it should read as
+     secondary chrome, not co-equal with the main Databases section. */
+  :root[data-ui-adapter-mode='shadcn'] .resources-sidebar h2 {
+    font-size: var(--glasklar-ui-font-size-button);
+    font-weight: var(--glasklar-ui-font-weight-header);
+    color: var(--glasklar-ui-text-muted);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin: 0 0 0.4rem;
+  }
+
+  :root[data-ui-adapter-mode='shadcn'] .resources-sidebar .cards {
+    gap: 0.75rem;
+  }
+
+  :root[data-ui-adapter-mode='shadcn'] .resource-card {
+    gap: 0.2rem;
+  }
+
+  :root[data-ui-adapter-mode='shadcn'] .resource-card .title {
+    font-size: var(--glasklar-ui-font-size-button);
+    font-weight: var(--glasklar-ui-font-weight-header);
+    gap: 0.4rem;
+  }
+
+  :root[data-ui-adapter-mode='shadcn'] .resource-card .icon-wrapper {
+    width: 1.5rem;
+    height: 1.5rem;
+    padding: 0;
+    border-radius: var(--glasklar-ui-radius);
+    background: var(--glasklar-ui-surface-muted);
+    color: var(--glasklar-ui-text-muted);
+  }
+
+  :root[data-ui-adapter-mode='shadcn'] .resource-card .description {
+    color: var(--glasklar-ui-text-muted);
+    font-size: var(--glasklar-ui-font-size-label);
+    line-height: 1.4;
+  }
+
+  :root[data-ui-adapter-mode='shadcn'] .resource-card .external-link-wrapper {
+    color: var(--glasklar-ui-text-faint);
+  }
+
+  /* Tighten the home page's main two-column grid spacing so the layout
+     no longer reads as two separate hero sections side-by-side. */
+  :root[data-ui-adapter-mode='shadcn'] .home-page .content,
+  :root[data-ui-adapter-mode='shadcn'] [class*='home-page'] > .content {
+    gap: 2rem !important;
+  }
+
+  /* Databases section heading: same compact h2 metric as Resources. */
+  :root[data-ui-adapter-mode='shadcn']
+    .databases-section
+    .section-title {
+    font-size: 1.0625rem;
+    font-weight: var(--glasklar-ui-font-weight-header);
   }
 
   :root[data-ui-adapter-mode='shadcn'] .app-header .right {
@@ -625,26 +763,47 @@
   }
 
   :root[data-ui-adapter-mode='shadcn'] .app-header .right .btn {
-    --button-padding: 0 0.65rem;
+    --button-padding: 0 0.55rem;
     --button-border-radius: var(--glasklar-ui-radius);
-    --button-background: var(--glasklar-ui-control-surface);
-    --button-border-color: var(--glasklar-ui-border);
+    /* Ghost-style chrome buttons in the top breadcrumb bar — no fill,
+       no border, no shadow. Hover reveals subtle bg. Matches the
+       "система общая" the user pointed at — these are minor chrome
+       affordances, not foreground actions. */
+    --button-background: transparent;
+    --button-border-color: transparent;
     --button-color: var(--glasklar-ui-text-muted);
     --button-hover-background: var(--glasklar-ui-hover);
-    --button-hover-border-color: var(--glasklar-ui-border-strong);
+    --button-hover-border-color: transparent;
     --button-hover-color: var(--glasklar-ui-text);
-    --button-focus-background: var(--glasklar-ui-control-surface);
+    --button-focus-background: transparent;
     --button-focus-border-color: var(--glasklar-ui-accent-border);
     --button-focus-color: var(--glasklar-ui-text);
     --button-active-background: var(--glasklar-ui-active);
-    --button-active-border-color: var(--glasklar-ui-border-strong);
+    --button-active-border-color: transparent;
     --button-active-color: var(--glasklar-ui-text);
 
-    min-height: 2rem;
+    min-height: 1.75rem;
+    height: 1.75rem;
     justify-content: center;
     font-size: var(--glasklar-ui-font-size-button);
     line-height: var(--glasklar-ui-line-height-control);
-    box-shadow: var(--glasklar-ui-shadow-xs);
+    box-shadow: none;
+  }
+
+  :root[data-ui-adapter-mode='shadcn'] .app-header .right .btn:hover {
+    box-shadow: none;
+  }
+
+  /* DropdownMenu trigger (settings gear) — hide the open-chevron in
+     the top bar; the gear glyph already implies "open menu". The
+     dropdown trigger uses `<span class="arrow">` in this component
+     library, not `.caret`. */
+  :root[data-ui-adapter-mode='shadcn']
+    .app-header
+    .right
+    .btn.dropdown
+    > .arrow {
+    display: none;
   }
 
   :root[data-ui-adapter-mode='shadcn'] .app-header .right .btn:hover {
@@ -652,7 +811,7 @@
   }
 
   :root[data-ui-adapter-mode='shadcn'] .app-header .right .btn:focus-visible {
-    box-shadow: 0 0 0 3px var(--glasklar-ui-focus-ring);
+    box-shadow: 0 0 0 2px var(--glasklar-ui-focus-ring);
   }
 
   :root[data-ui-adapter-mode='shadcn'] .app-header .right .feedback-button,
@@ -678,7 +837,10 @@
     font-size: var(--glasklar-ui-font-size-table);
     line-height: var(--glasklar-ui-line-height-control);
     color: var(--glasklar-ui-text-muted);
-    gap: 0.125rem;
+    /* was 0.125rem (1.75px) — chevrons sat directly on top of the next
+       chip's first letter. 0.3rem gives one small char-width of breathing
+       room without making the bar feel airy. */
+    gap: 0.3rem;
   }
 
   :root[data-ui-adapter-mode='shadcn'] .breadcrumb .home-link {
@@ -825,20 +987,25 @@
     .input-element.prefixed-input:not(:disabled):active {
     border-color: var(--glasklar-ui-accent-border);
     outline: 0;
-    box-shadow: 0 0 0 3px var(--glasklar-ui-focus-ring);
+    box-shadow: 0 0 0 2px var(--glasklar-ui-focus-ring);
   }
 
   /* === 4. table page header =========================================== */
 
   :root[data-ui-adapter-mode='shadcn'] .table-page {
-    background: var(--glasklar-ui-surface);
+    /* Transparent so the page-level gradient canvas (set on
+       `.app-layout`) shows through. Sheet + inspector paint their own
+       opaque surfaces on top where needed. */
+    background: transparent;
   }
 
   :root[data-ui-adapter-mode='shadcn'] .table-page .entity-page-header {
     min-height: 3rem;
     padding: 0 var(--sm3);
-    border-bottom: 1px solid var(--glasklar-ui-header-divider);
-    background: var(--glasklar-ui-surface);
+    /* No bottom border, no local gradient — the page-level gradient
+       (set on `.app-layout`) bleeds through here too. */
+    border-bottom: 0;
+    background: transparent;
     box-sizing: border-box;
   }
 
@@ -876,7 +1043,10 @@
     .heading
     .name {
     color: var(--glasklar-ui-text);
-    font-size: 0.95rem;
+    /* QA fix #PT1: bumped from 0.95rem (~13.3px) to 1.0625rem (~14.875px).
+       Previous size landed *below* body text — broke heading hierarchy on
+       table page. 1.0625rem keeps compact density but reads as h1. */
+    font-size: 1.0625rem;
     font-weight: var(--glasklar-ui-font-weight-header);
     letter-spacing: 0;
     line-height: 1.25;
@@ -987,7 +1157,7 @@
     .ui-adapter-button:focus-visible {
     outline: 0;
     border-color: var(--glasklar-ui-accent);
-    box-shadow: 0 0 0 3px var(--glasklar-ui-focus-ring);
+    box-shadow: 0 0 0 2px var(--glasklar-ui-focus-ring);
   }
 
   /* aria-expanded = visually open. Keep tinted bg but stronger than
@@ -1075,7 +1245,10 @@
     padding: 0 0.5rem;
     border-radius: 5px;
     color: var(--glasklar-ui-text);
-    font-size: var(--glasklar-ui-font-size-label);
+    /* QA fix #MI1: bumped from label (0.75rem ~10.5px) to button
+       (0.8125rem ~11.375px) so menu items match the toolbar trigger that
+       opened them. 10.5px on actionable items was below readable density. */
+    font-size: var(--glasklar-ui-font-size-button);
     font-weight: 400;
     gap: var(--glasklar-ui-dropdown-item-gap);
   }
@@ -1155,7 +1328,9 @@
     padding: 0 0.55rem;
     border-radius: 5px;
     color: var(--glasklar-ui-text);
-    font-size: var(--glasklar-ui-font-size-label);
+    /* QA fix #MI1 (mirror of menu-item bump): keep select options at the
+       same readable size as menu items. */
+    font-size: var(--glasklar-ui-font-size-button);
     font-weight: 400;
     line-height: var(--glasklar-ui-line-height-control);
   }
@@ -1289,6 +1464,73 @@
   :root[data-ui-adapter-mode='shadcn'] .dropdown.content .filter-column-picker {
     max-height: min(20rem, calc(100svh - 12rem));
     overflow: auto;
+  }
+
+  /* === 6b. Hide-columns list parity =====================================
+     The Hide popover renders its own row component (`.hide-column-row`)
+     so it does NOT inherit the .menu-item-button shadcn styling used by
+     Filter / Sort / Group / Extend column pickers. Before this fix the
+     Hide rows came out 30px tall at 14px text while Group / Sort rows
+     were 25px tall at 11.375px — visibly inconsistent across same-family
+     dropdowns. Bring Hide in line with the rest. */
+
+  :root[data-ui-adapter-mode='shadcn'] .hide-columns {
+    padding: 0;
+    min-width: 18rem;
+  }
+
+  :root[data-ui-adapter-mode='shadcn'] .hide-columns .header {
+    padding: 0 0.25rem 0.25rem;
+    gap: 0.5rem;
+  }
+
+  :root[data-ui-adapter-mode='shadcn'] .hide-columns .header .title {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-right: auto;
+    color: var(--glasklar-ui-text-muted);
+    font-size: var(--glasklar-ui-font-size-label);
+    font-weight: var(--glasklar-ui-font-weight-control);
+  }
+
+  :root[data-ui-adapter-mode='shadcn'] .hide-columns .header .links {
+    font-size: var(--glasklar-ui-font-size-button);
+  }
+
+  :root[data-ui-adapter-mode='shadcn'] .hide-columns .header .links .link {
+    color: var(--glasklar-ui-text-muted);
+    text-decoration: none;
+  }
+
+  :root[data-ui-adapter-mode='shadcn']
+    .hide-columns
+    .header
+    .links
+    .link:hover {
+    color: var(--glasklar-ui-text);
+    text-decoration: underline;
+  }
+
+  :root[data-ui-adapter-mode='shadcn'] .hide-columns .column-list {
+    padding: 0;
+    display: grid;
+    gap: 1px;
+  }
+
+  :root[data-ui-adapter-mode='shadcn'] .hide-column-row {
+    min-height: var(--glasklar-ui-dropdown-item-height);
+    padding: 0 0.5rem;
+    gap: var(--glasklar-ui-dropdown-item-gap);
+    border-radius: 5px;
+    font-size: var(--glasklar-ui-font-size-button);
+    line-height: var(--glasklar-ui-line-height-control);
+  }
+
+  :root[data-ui-adapter-mode='shadcn'] .hide-column-row .hide-column-label {
+    padding: 0;
+    font-size: inherit;
+    line-height: inherit;
   }
 
   :root[data-ui-adapter-mode='shadcn']
@@ -1540,6 +1782,22 @@
     border-top: 1px solid var(--glasklar-ui-border);
   }
 
+  /* Tooltip popovers use `.dropdown.content.tooltip` which is more
+     specific than my generic `.dropdown.content` rule and thus retains
+     the legacy warm help-bg + heavy shadow. Pull it into the shadcn
+     surface system: small dark popover, muted text, subtle shadow. */
+  :root[data-ui-adapter-mode='shadcn'] .dropdown.content.tooltip {
+    max-width: min(80vw, 22rem);
+    padding: 0.4rem 0.55rem;
+    border: 1px solid var(--glasklar-ui-border);
+    border-radius: var(--glasklar-ui-radius);
+    background: var(--glasklar-ui-surface-popover);
+    color: var(--glasklar-ui-text);
+    font-size: var(--glasklar-ui-font-size-button);
+    line-height: 1.4;
+    box-shadow: var(--glasklar-ui-shadow-popover);
+  }
+
   /* === 7. table grid ================================================== */
 
   :root[data-ui-adapter-mode='shadcn'] .table-view {
@@ -1590,7 +1848,10 @@
     [data-sheet-element='column-header-cell'] {
     border-right-color: var(--glasklar-ui-grid-border);
     color: var(--glasklar-ui-text);
-    font-size: var(--glasklar-ui-font-size-label);
+    /* QA fix #C1: column header was label-size (0.75rem ~10.5px) which is
+       *smaller* than the data cells below it (0.8125rem). Headers should
+       match (or exceed) cell size for proper visual hierarchy. */
+    font-size: var(--glasklar-ui-font-size-cell);
     font-weight: var(--glasklar-ui-font-weight-control);
     line-height: var(--glasklar-ui-line-height-tight);
     text-transform: none;
@@ -1644,7 +1905,9 @@
     border-right-color: var(--glasklar-ui-grid-border);
     border-bottom-color: var(--glasklar-ui-grid-border);
     color: var(--glasklar-ui-text-muted);
-    font-size: var(--glasklar-ui-font-size-label);
+    /* QA fix #C1 (mirror): row-header (left-side index column) was also
+       label-size (10.5px). Bump to match column-header + data-cell size. */
+    font-size: var(--glasklar-ui-font-size-cell);
     line-height: var(--glasklar-ui-line-height-tight);
   }
 
@@ -1736,7 +1999,8 @@
   :root[data-ui-adapter-mode='shadcn']
     .modal
     .window
-    [data-window-area='title-bar'] {
+    [data-window-area='title-bar'],
+  :root[data-ui-adapter-mode='shadcn'] .modal .window > .title-bar {
     padding: 0.875rem 1rem;
     border-bottom: 1px solid var(--glasklar-ui-border);
     background: var(--glasklar-ui-surface);
@@ -1744,19 +2008,43 @@
     font-weight: var(--glasklar-ui-font-weight-header);
   }
 
+  /* Close button (X) in modal title bar — `.btn.btn-plain` defaults pull a
+     warm beige fill from legacy tokens. Force it to a ghost icon button. */
   :root[data-ui-adapter-mode='shadcn']
     .modal
     .window
-    [data-window-area='title'] {
+    .title-bar
+    .btn.btn-plain {
+    --button-background: transparent;
+    --button-border-color: transparent;
+    --button-hover-background: var(--glasklar-ui-hover);
+    --button-hover-border-color: transparent;
+    --button-color: var(--glasklar-ui-text-muted);
+    --button-hover-color: var(--glasklar-ui-text);
+    background: transparent;
+    border-color: transparent;
+    box-shadow: none;
+  }
+
+  /* Modal title — mirror the page-title fix #PT1. Selector covers BOTH the
+     legacy data-window-area attribute AND the actual class-based markup
+     produced by the Modal component, since real DOM uses `.title` not the
+     attribute on every code path. */
+  :root[data-ui-adapter-mode='shadcn']
+    .modal
+    .window
+    [data-window-area='title'],
+  :root[data-ui-adapter-mode='shadcn'] .modal .window .title-bar .title {
     color: var(--glasklar-ui-text);
-    font-size: 0.95rem;
+    font-size: 1.0625rem; /* matches table-page entity title — 14.875px in 14-base */
     font-weight: var(--glasklar-ui-font-weight-header);
   }
 
   :root[data-ui-adapter-mode='shadcn']
     .modal
     .window
-    [data-window-area='body'] {
+    [data-window-area='body'],
+  :root[data-ui-adapter-mode='shadcn'] .modal .window > .body {
     background: var(--glasklar-ui-surface);
     color: var(--glasklar-ui-text);
   }
@@ -1764,10 +2052,58 @@
   :root[data-ui-adapter-mode='shadcn']
     .modal
     .window
-    [data-window-area='footer'] {
+    [data-window-area='footer'],
+  :root[data-ui-adapter-mode='shadcn'] .modal .window > .footer {
     background: var(--glasklar-ui-surface);
     border-top: 1px solid var(--glasklar-ui-border);
     padding: 0.75rem 1rem;
+  }
+
+  /* === 7c. shared components inside modal/page bodies ==================
+     The following selectors target reusable building blocks (MessageBox,
+     OverviewSection, RoleWithChildren pill) that appear across modals and
+     elsewhere. Scoping to `:root[data-ui-adapter-mode='shadcn']` only —
+     same-component rendering in legacy mode is untouched. */
+
+  /* OverviewSection ".section" — Owner / Granted Privileges cards in the
+     Permissions modal. Legacy uses warm-beige --color-border-section and a
+     too-small 4px radius. */
+  :root[data-ui-adapter-mode='shadcn'] .section {
+    border-color: var(--glasklar-ui-border);
+    border-radius: var(--glasklar-ui-radius);
+  }
+
+  /* RoleWithChildren pill ".name" — the "mathesar" chip uses a near-black
+     1px border which reads as heavy. Switch to a subtle neutral border
+     consistent with shadcn badge/Pill conventions. */
+  :root[data-ui-adapter-mode='shadcn'] .role-with-children .name {
+    border-color: var(--glasklar-ui-border);
+    background: var(--glasklar-ui-surface-muted);
+    color: var(--glasklar-ui-text);
+    font-size: var(--glasklar-ui-font-size-button);
+    font-weight: var(--glasklar-ui-font-weight-control);
+  }
+
+  /* MessageBox — used for warnings/info inside modals + elsewhere. Legacy
+     ships a 4px solid-color left rail (border-left) which is the classic
+     "callout" pattern. Shadcn alert convention is a thin full border, a
+     subtle surface tint, and an inline icon. Preserve the warning hue
+     (the underlying token already paints a cream bg + olive text), but
+     swap the heavy left rail for a 1px full border + larger radius. */
+  :root[data-ui-adapter-mode='shadcn'] .message-box {
+    border: 1px solid color-mix(in srgb, currentcolor, transparent 80%);
+    border-left-width: 1px;
+    border-radius: var(--glasklar-ui-radius);
+    padding: 0.6rem 0.75rem;
+  }
+
+  :root[data-ui-adapter-mode='shadcn'] .message-box.has-icon {
+    padding-left: 2.25em;
+  }
+
+  :root[data-ui-adapter-mode='shadcn'] .message-box .title {
+    font-size: var(--glasklar-ui-font-size-button);
+    font-weight: var(--glasklar-ui-font-weight-header);
   }
 
   /* Record-selector grid inside modal: normalize cell sizes so the
@@ -1831,14 +2167,141 @@
     box-shadow: var(--glasklar-ui-shadow-sm);
   }
 
+  /* Plain (non-prefixed) text inputs + textareas + select buttons fell
+     back to the legacy `--color-border-input` (warm khaki) and the 4px
+     radius. Section 3 only covered `.prefix-wrapper .prefixed-input`,
+     so every Name/Description/number/textarea field + every "Data Type"
+     style select trigger across the app read as a heavy beige outline.
+     Scope is intentionally global within the shadcn root. */
+  :root[data-ui-adapter-mode='shadcn']
+    .input-element.text-input:not(.prefixed-input),
+  :root[data-ui-adapter-mode='shadcn'] textarea.input-element,
+  :root[data-ui-adapter-mode='shadcn'] textarea,
+  :root[data-ui-adapter-mode='shadcn'] .input-element.select:not(.dropdown) {
+    min-height: 2rem;
+    border: 1px solid var(--glasklar-ui-border);
+    border-radius: var(--glasklar-ui-radius);
+    background: var(--glasklar-ui-surface);
+    color: var(--glasklar-ui-text);
+    font-size: var(--glasklar-ui-font-size-button);
+    line-height: var(--glasklar-ui-line-height-control);
+    box-shadow: var(--glasklar-ui-shadow-xs);
+  }
+
+  :root[data-ui-adapter-mode='shadcn']
+    .input-element.text-input:not(.prefixed-input):focus,
+  :root[data-ui-adapter-mode='shadcn'] textarea.input-element:focus,
+  :root[data-ui-adapter-mode='shadcn'] textarea:focus,
+  :root[data-ui-adapter-mode='shadcn']
+    .input-element.select:not(.dropdown):focus-within {
+    outline: 0;
+    border-color: var(--glasklar-ui-accent-border);
+    box-shadow: 0 0 0 2px var(--glasklar-ui-focus-ring);
+  }
+
+  /* "Table Permissions" button uses size-small variant → 10.1px font,
+     which is below every other interactive control in shadcn mode and
+     makes it look out-of-place tucked between full-size sections. Pin
+     it to the same compact-button metrics as the toolbar triggers. */
+  :root[data-ui-adapter-mode='shadcn']
+    .table-inspector
+    .permissions-button {
+    height: var(--glasklar-ui-button-height);
+    min-height: var(--glasklar-ui-button-height);
+    padding: 0 var(--glasklar-ui-button-padding-x);
+    font-size: var(--glasklar-ui-font-size-button);
+  }
+
+  /* FK reference cards under "References From This Table" — the link
+     card (`.passthrough.link-card`) had a warm khaki `rgb(198,194,185)`
+     border and the legacy 4px radius. Bring it in line with the rest of
+     the inspector card system (cool neutral border, 6px radius). */
+  :root[data-ui-adapter-mode='shadcn']
+    .table-inspector
+    .passthrough.link-card {
+    border: 1px solid var(--glasklar-ui-border);
+    border-radius: var(--glasklar-ui-radius);
+    background: var(--glasklar-ui-surface-muted);
+  }
+
+  :root[data-ui-adapter-mode='shadcn']
+    .table-inspector
+    .passthrough.link-card:hover {
+    border-color: var(--glasklar-ui-border-strong);
+    background: var(--glasklar-ui-hover);
+  }
+
+  /* === 8b. TabContainer (inspector tabs + schemas/database tabs) =======
+     QA fix #T1 + #T4: legacy `.tab` rule used `font-size: var(--lg1)` plus
+     `border-bottom: 0.25em solid` which rendered as ~17.5px text with a
+     4px purple-grey active underline on the database page, and ~14px text
+     with a 3.5px underline inside the inspector. Both feel heavy and
+     out-of-system. Shadcn convention: text-sm (14px) tab labels, 2px
+     foreground underline, no opacity dimming. */
+  :root[data-ui-adapter-mode='shadcn'] .tab-container > ul.tabs {
+    gap: 0;
+    border-bottom-color: var(--glasklar-ui-border);
+    border-bottom-width: 1px;
+  }
+
+  :root[data-ui-adapter-mode='shadcn'] .tab-container > ul.tabs > li.tab {
+    border-bottom-width: 2px;
+    border-radius: 0;
+    margin-right: 0.25rem;
+    /* 1rem in the 14px-base root = 14px (shadcn standard tab label).
+       Avoid 0.875rem here — in this scale it collapses to 12.25px which
+       reads as caption/label, not a clickable tab. */
+    font-size: 1rem;
+    font-weight: var(--glasklar-ui-font-weight-control);
+    opacity: 1;
+    color: var(--glasklar-ui-text-muted);
+  }
+
+  :root[data-ui-adapter-mode='shadcn']
+    .tab-container
+    > ul.tabs
+    > li.tab
+    > div,
+  :root[data-ui-adapter-mode='shadcn'] .tab-container > ul.tabs > li.tab > a {
+    padding: 0.35rem 0.65rem;
+    font-weight: inherit;
+  }
+
+  :root[data-ui-adapter-mode='shadcn']
+    .tab-container
+    > ul.tabs
+    > li.tab:hover {
+    border-bottom-color: var(--glasklar-ui-border-strong);
+    color: var(--glasklar-ui-text);
+  }
+
+  :root[data-ui-adapter-mode='shadcn']
+    .tab-container
+    > ul.tabs
+    > li.tab.active {
+    border-bottom-color: var(--glasklar-ui-text);
+    color: var(--glasklar-ui-text);
+    font-weight: var(--glasklar-ui-font-weight-header);
+  }
+
+  :root[data-ui-adapter-mode='shadcn']
+    .tab-container
+    > ul.tabs
+    > li.tab.focused {
+    border-color: var(--glasklar-ui-accent);
+  }
+
   /* === 9. footer / status pane / pagination =========================== */
 
   :root[data-ui-adapter-mode='shadcn'] .status-pane {
     box-sizing: border-box;
     min-height: var(--glasklar-ui-footer-height);
     flex-basis: var(--glasklar-ui-footer-height);
+    /* No top border, no opaque surface — the page-level gradient canvas
+       reads through the footer too, so the table page chrome (header +
+       grid + footer) all sit on one continuous gradient. */
     border-top: 0;
-    background: var(--glasklar-ui-surface);
+    background: transparent;
     color: var(--glasklar-ui-text-muted);
     font-size: var(--glasklar-ui-font-size-table);
     line-height: var(--glasklar-ui-line-height-control);
@@ -1938,22 +2401,30 @@
     .status-pane
     .input-element.select:focus-within {
     outline: 0;
-    box-shadow: 0 0 0 3px var(--glasklar-ui-focus-ring);
+    box-shadow: 0 0 0 2px var(--glasklar-ui-focus-ring);
   }
 
   /* Mini-pagination — segmented ghost group: same neutral surface,
      thin shared borders, current page label sits between two arrow
      icon buttons. Drop the legacy outer border ring. */
   :root[data-ui-adapter-mode='shadcn'] .mini-pagination {
-    border: 1px solid var(--glasklar-ui-border);
+    /* Drop the outer border ring entirely — the 1px frame made the chip
+       2px taller than its neighbours (page-size select + Refresh button)
+       and read as a separate "boxed" group. With border-right kept on
+       inner segments the divider still articulates the prev/page/next
+       split, but the whole chip now sits at the same 24.5px height. */
+    border: 0;
     border-radius: var(--glasklar-ui-radius);
-    background: var(--glasklar-ui-surface);
+    background: transparent;
     overflow: hidden;
   }
 
   :root[data-ui-adapter-mode='shadcn'] .mini-pagination > * {
-    min-height: 1.625rem;
-    height: 1.625rem;
+    /* Match the height of the other footer controls (page-size selector
+       + Refresh button) which run at 1.75rem. Was 1.625rem → 2px shorter,
+       which made the chip look squashed against its neighbors. */
+    min-height: 1.75rem;
+    height: 1.75rem;
     border-radius: 0 !important;
     border: 0 !important;
     border-right: 1px solid var(--glasklar-ui-border) !important;
@@ -2018,13 +2489,26 @@
   :root[data-ui-adapter-mode='shadcn']
     .schema-list-wrapper
     .search-container
+    input,
+  /* Home page Databases search — same .search-container class but in
+     a different ancestor, so cover both. Match the primary-button
+     metrics on this row (Connect Database / Create Schema): 32px tall,
+     14px text — was 28.78px / 11.375px which read as a smaller chip
+     than the button beside it. */
+  :root[data-ui-adapter-mode='shadcn']
+    .databases-section
+    .search-container
+    .input-element,
+  :root[data-ui-adapter-mode='shadcn']
+    .databases-section
+    .search-container
     input {
-    min-height: 2rem;
+    min-height: 2.2rem;
     border-color: var(--glasklar-ui-border);
     border-radius: var(--glasklar-ui-radius);
     background: var(--glasklar-ui-surface-input);
     color: var(--glasklar-ui-text);
-    font-size: var(--glasklar-ui-font-size-table);
+    font-size: 1rem;
   }
 
   :root[data-ui-adapter-mode='shadcn']
@@ -2032,7 +2516,7 @@
     .search-container
     .input-element:focus-within {
     border-color: var(--glasklar-ui-accent);
-    box-shadow: 0 0 0 3px var(--glasklar-ui-focus-ring);
+    box-shadow: 0 0 0 2px var(--glasklar-ui-focus-ring);
   }
 
   /* SchemasSection.svelte's scoped CSS sets .schema-list to flex column
@@ -2071,7 +2555,7 @@
     outline: 0;
     border-color: var(--glasklar-ui-accent);
     background: var(--glasklar-ui-surface);
-    box-shadow: 0 0 0 3px var(--glasklar-ui-focus-ring);
+    box-shadow: 0 0 0 2px var(--glasklar-ui-focus-ring);
   }
 
   :root[data-ui-adapter-mode='shadcn'] .schema-row .content-header {
@@ -2163,6 +2647,139 @@
       .search-container {
       width: 100%;
     }
+  }
+
+  /* === 10b. Section titles + grid tables (used on settings pages,
+                schema overview, etc.) ================================
+     Per user direction the "Databases" h2 size (24.5px / 1.75rem) is
+     the preferred section-title weight. Apply the same to:
+       - Settings page section titles (Roles, Stored Roles, Collaborators)
+       - SchemaOverview h2 (Tables, Explorations, Forms)
+     so every primary section heading on workspace pages reads at the
+     same hero scale. */
+  :root[data-ui-adapter-mode='shadcn'] .settings-content > header .title,
+  :root[data-ui-adapter-mode='shadcn'] .schema-overview h2 {
+    font-size: 1.75rem;
+    font-weight: var(--glasklar-ui-font-weight-header);
+    line-height: 1.2;
+    color: var(--glasklar-ui-text);
+  }
+
+  :root[data-ui-adapter-mode='shadcn'] .settings-content {
+    padding: 0;
+  }
+
+  :root[data-ui-adapter-mode='shadcn'] .settings-content > header {
+    padding: 0.5rem 0 0.85rem;
+    gap: 0.75rem;
+  }
+
+  :root[data-ui-adapter-mode='shadcn'] .settings-content > .content {
+    padding: 0;
+  }
+
+  /* Settings page section nav (left column on Database Settings → Roles
+     / Stored Roles / Collaborators). The .menu-heading + .menu-item-link
+     come from the dropdown menu primitive — make them feel like a
+     sidebar nav, not a popover. */
+  :root[data-ui-adapter-mode='shadcn']
+    .page-sidebar-layout
+    .navigation {
+    padding: 0.5rem 0 0;
+  }
+
+  :root[data-ui-adapter-mode='shadcn']
+    .page-sidebar-layout
+    .navigation
+    .menu-heading {
+    padding: 0.6rem 0.75rem 0.3rem;
+    color: var(--glasklar-ui-text-muted);
+    font-size: var(--glasklar-ui-font-size-label);
+    font-weight: var(--glasklar-ui-font-weight-control);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  :root[data-ui-adapter-mode='shadcn']
+    .page-sidebar-layout
+    .navigation
+    .menu-item-link {
+    min-height: 1.85rem;
+    padding: 0 0.75rem;
+    border-radius: var(--glasklar-ui-radius);
+    color: var(--glasklar-ui-text-muted);
+    font-size: var(--glasklar-ui-font-size-button);
+  }
+
+  :root[data-ui-adapter-mode='shadcn']
+    .page-sidebar-layout
+    .navigation
+    .menu-item-link:hover {
+    background: var(--glasklar-ui-hover);
+    color: var(--glasklar-ui-text);
+  }
+
+  :root[data-ui-adapter-mode='shadcn']
+    .page-sidebar-layout
+    .navigation
+    .menu-item-link.active {
+    background: var(--glasklar-ui-surface-muted);
+    color: var(--glasklar-ui-text);
+    font-weight: var(--glasklar-ui-font-weight-header);
+  }
+
+  :root[data-ui-adapter-mode='shadcn']
+    .page-sidebar-layout
+    .navigation
+    .menu-divider {
+    margin: 0.4rem 0.5rem;
+    border-top: 1px solid var(--glasklar-ui-border);
+  }
+
+  /* GridTable (used on Roles, Stored Roles, Collaborators tables) — was
+     painted with warm `--color-bg-raised-1` bg and the legacy half-px
+     `--color-border-raised-1` border. Pull into shadcn surface system. */
+  :root[data-ui-adapter-mode='shadcn'] .grid-table {
+    border: 1px solid var(--glasklar-ui-border);
+    border-radius: var(--glasklar-ui-radius);
+    background: var(--glasklar-ui-surface);
+  }
+
+  :root[data-ui-adapter-mode='shadcn'] .grid-table .gt-cell {
+    padding: 0.55rem 0.85rem;
+    border-bottom: 1px solid var(--glasklar-ui-border);
+    color: var(--glasklar-ui-text);
+    font-size: var(--glasklar-ui-font-size-button);
+  }
+
+  :root[data-ui-adapter-mode='shadcn'] .grid-table .gt-cell::before {
+    background: var(--glasklar-ui-border);
+  }
+
+  :root[data-ui-adapter-mode='shadcn'] .grid-table .gt-cell.gt-header {
+    padding: 0.4rem 0.85rem;
+    background: var(--glasklar-ui-surface-muted);
+    color: var(--glasklar-ui-text-muted);
+    font-size: var(--glasklar-ui-font-size-label);
+    font-weight: var(--glasklar-ui-font-weight-control);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  :root[data-ui-adapter-mode='shadcn']
+    .grid-table
+    .gt-cell.gt-header::after {
+    background-color: var(--glasklar-ui-border);
+  }
+
+  /* Last row should not have a bottom border (visual seam at card edge) */
+  :root[data-ui-adapter-mode='shadcn']
+    .grid-table
+    > .gt-cell:nth-last-child(-n + 1):not(.gt-header),
+  :root[data-ui-adapter-mode='shadcn']
+    .grid-table
+    > .gt-cell:nth-last-child(-n + 4):not(.gt-header) {
+    border-bottom: 0;
   }
 
   /* === 11. SchemaOverview tables list ================================ */
@@ -2310,6 +2927,187 @@
   :root[data-ui-adapter-mode='shadcn'] .tutorial .body {
     color: var(--glasklar-ui-text-muted);
     font-size: var(--glasklar-ui-font-size-label);
+  }
+
+  /* === 11b. flatpickr date / datetime picker ==========================
+     Mathesar ships flatpickr unstyled (the upstream theme is dropped from
+     the bundle), so date pickers inherit only the most basic flatpickr
+     defaults — heavy left rail, default blue selection, 4px radius,
+     bold weekdays. Rewire to shadcn calendar conventions: cool surface,
+     small radius, accent fill on selected day, subtle ring on today. */
+
+  :root[data-ui-adapter-mode='shadcn'] .flatpickr-calendar {
+    border: 1px solid var(--glasklar-ui-border);
+    border-radius: var(--glasklar-ui-radius-lg);
+    background: var(--glasklar-ui-surface-popover);
+    box-shadow: var(--glasklar-ui-shadow-popover);
+    color: var(--glasklar-ui-text);
+    font-family: inherit;
+    font-size: var(--glasklar-ui-font-size-button);
+    padding: 0.4rem;
+  }
+
+  :root[data-ui-adapter-mode='shadcn'] .flatpickr-months {
+    align-items: center;
+    height: auto;
+    padding: 0.15rem 0.2rem 0.35rem;
+  }
+
+  :root[data-ui-adapter-mode='shadcn'] .flatpickr-month {
+    color: var(--glasklar-ui-text);
+    font-weight: var(--glasklar-ui-font-weight-header);
+    font-size: var(--glasklar-ui-font-size-button);
+    height: auto;
+  }
+
+  :root[data-ui-adapter-mode='shadcn'] .flatpickr-current-month {
+    padding-top: 0;
+    font-size: var(--glasklar-ui-font-size-button);
+    font-weight: var(--glasklar-ui-font-weight-header);
+  }
+
+  :root[data-ui-adapter-mode='shadcn']
+    .flatpickr-current-month
+    .flatpickr-monthDropdown-months {
+    appearance: none;
+    border: 1px solid transparent;
+    border-radius: var(--glasklar-ui-radius);
+    background: transparent;
+    color: var(--glasklar-ui-text);
+    padding: 0.15rem 0.35rem;
+    font-size: var(--glasklar-ui-font-size-button);
+    font-weight: var(--glasklar-ui-font-weight-header);
+  }
+
+  :root[data-ui-adapter-mode='shadcn']
+    .flatpickr-current-month
+    .flatpickr-monthDropdown-months:hover {
+    background: var(--glasklar-ui-hover);
+  }
+
+  :root[data-ui-adapter-mode='shadcn']
+    .flatpickr-current-month
+    input.cur-year {
+    border: 1px solid transparent;
+    border-radius: var(--glasklar-ui-radius);
+    background: transparent;
+    color: var(--glasklar-ui-text);
+    padding: 0.15rem 0.35rem;
+    font-size: var(--glasklar-ui-font-size-button);
+    font-weight: var(--glasklar-ui-font-weight-header);
+  }
+
+  :root[data-ui-adapter-mode='shadcn']
+    .flatpickr-current-month
+    input.cur-year:hover {
+    background: var(--glasklar-ui-hover);
+  }
+
+  :root[data-ui-adapter-mode='shadcn'] .flatpickr-prev-month,
+  :root[data-ui-adapter-mode='shadcn'] .flatpickr-next-month {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: var(--glasklar-ui-radius);
+    color: var(--glasklar-ui-text-muted);
+    fill: currentcolor;
+    padding: 0;
+  }
+
+  :root[data-ui-adapter-mode='shadcn'] .flatpickr-prev-month:hover,
+  :root[data-ui-adapter-mode='shadcn'] .flatpickr-next-month:hover {
+    background: var(--glasklar-ui-hover);
+    color: var(--glasklar-ui-text);
+  }
+
+  :root[data-ui-adapter-mode='shadcn'] .flatpickr-prev-month svg,
+  :root[data-ui-adapter-mode='shadcn'] .flatpickr-next-month svg {
+    width: 0.75rem;
+    height: 0.75rem;
+    fill: currentcolor;
+  }
+
+  :root[data-ui-adapter-mode='shadcn'] .flatpickr-weekdays {
+    height: auto;
+    padding: 0.1rem 0 0.2rem;
+  }
+
+  :root[data-ui-adapter-mode='shadcn'] .flatpickr-weekday {
+    color: var(--glasklar-ui-text-muted);
+    font-size: var(--glasklar-ui-font-size-label);
+    font-weight: var(--glasklar-ui-font-weight-control);
+    text-transform: none;
+    letter-spacing: 0;
+  }
+
+  :root[data-ui-adapter-mode='shadcn'] .flatpickr-days {
+    padding: 0;
+  }
+
+  :root[data-ui-adapter-mode='shadcn'] .flatpickr-day {
+    border: 0;
+    border-radius: var(--glasklar-ui-radius);
+    color: var(--glasklar-ui-text);
+    font-size: var(--glasklar-ui-font-size-button);
+    font-weight: 400;
+    line-height: 1;
+    max-width: 2.25rem;
+    height: 2.1rem;
+  }
+
+  :root[data-ui-adapter-mode='shadcn'] .flatpickr-day:hover {
+    background: var(--glasklar-ui-hover);
+    border-color: transparent;
+  }
+
+  :root[data-ui-adapter-mode='shadcn'] .flatpickr-day.today {
+    border: 1px solid var(--glasklar-ui-border-strong);
+    background: transparent;
+    color: var(--glasklar-ui-text);
+  }
+
+  :root[data-ui-adapter-mode='shadcn'] .flatpickr-day.today:hover {
+    background: var(--glasklar-ui-hover);
+  }
+
+  :root[data-ui-adapter-mode='shadcn'] .flatpickr-day.selected,
+  :root[data-ui-adapter-mode='shadcn'] .flatpickr-day.selected.today,
+  :root[data-ui-adapter-mode='shadcn'] .flatpickr-day.selected:hover {
+    border: 1px solid var(--glasklar-ui-accent-strong);
+    background: var(--glasklar-ui-accent);
+    color: var(--glasklar-ui-text-on-accent);
+  }
+
+  :root[data-ui-adapter-mode='shadcn'] .flatpickr-day.prevMonthDay,
+  :root[data-ui-adapter-mode='shadcn'] .flatpickr-day.nextMonthDay {
+    color: var(--glasklar-ui-text-faint);
+  }
+
+  :root[data-ui-adapter-mode='shadcn'] .flatpickr-day.flatpickr-disabled,
+  :root[data-ui-adapter-mode='shadcn']
+    .flatpickr-day.flatpickr-disabled:hover {
+    color: var(--glasklar-ui-text-faint);
+    background: transparent;
+    cursor: not-allowed;
+  }
+
+  /* Time row (hour/minute inputs) when picker is datetime */
+  :root[data-ui-adapter-mode='shadcn'] .flatpickr-time {
+    border-top: 1px solid var(--glasklar-ui-border);
+    padding: 0.3rem 0;
+  }
+
+  :root[data-ui-adapter-mode='shadcn'] .flatpickr-time input {
+    color: var(--glasklar-ui-text);
+    background: transparent;
+    font-size: var(--glasklar-ui-font-size-button);
+  }
+
+  :root[data-ui-adapter-mode='shadcn'] .flatpickr-time input:hover,
+  :root[data-ui-adapter-mode='shadcn'] .flatpickr-time input:focus {
+    background: var(--glasklar-ui-hover);
   }
 
   /* === 12. Table style variants =======================================
