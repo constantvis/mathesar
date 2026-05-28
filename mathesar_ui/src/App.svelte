@@ -3671,4 +3671,87 @@
     display: flex;
     background-color: var(--color-bg-base);
   }
+
+  /* === 13. Font style variants =========================================
+     Selected via the admin Settings menu (FontStyleSelect). Each variant
+     rewires `--font-family-base` (sans / chrome) and `--font-family-mono`
+     (code / tabular). Scoped under shadcn mode — legacy renders the
+     stock Inter pairing regardless. */
+
+  /* 13a. system — native OS stack, no custom font payload. */
+  :root[data-ui-adapter-mode='shadcn'][data-font-style='system'] body,
+  :root[data-ui-adapter-mode='shadcn'][data-font-style='system'] {
+    --font-family-base:
+      system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
+      Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  }
+
+  /* 13b. mono — full monospace UI (code-editor feel). */
+  :root[data-ui-adapter-mode='shadcn'][data-font-style='mono'] body,
+  :root[data-ui-adapter-mode='shadcn'][data-font-style='mono'] {
+    --font-family-base:
+      ui-monospace, 'JetBrains Mono', 'Geist Mono', SFMono-Regular, Menlo,
+      Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+    letter-spacing: 0;
+  }
+
+  /* 13c. hybrid — sans chrome + mono for technical surfaces.
+     Body inherits the default sans pairing; only data-shaped surfaces
+     get the monospace stack: table cells, column header glyphs, FK
+     reference identifiers, schema/db meta. */
+  :root[data-ui-adapter-mode='shadcn'][data-font-style='hybrid']
+    [data-sheet-element='data-cell'],
+  :root[data-ui-adapter-mode='shadcn'][data-font-style='hybrid']
+    [data-sheet-element='column-header-cell'],
+  :root[data-ui-adapter-mode='shadcn'][data-font-style='hybrid']
+    [data-sheet-element='row-header-cell'],
+  :root[data-ui-adapter-mode='shadcn'][data-font-style='hybrid']
+    .cell-fabric,
+  :root[data-ui-adapter-mode='shadcn'][data-font-style='hybrid']
+    .table-inspector
+    .passthrough.link-card,
+  :root[data-ui-adapter-mode='shadcn'][data-font-style='hybrid']
+    .role-with-children
+    .name,
+  :root[data-ui-adapter-mode='shadcn'][data-font-style='hybrid']
+    code,
+  :root[data-ui-adapter-mode='shadcn'][data-font-style='hybrid']
+    pre {
+    font-family: ui-monospace, 'JetBrains Mono', 'Geist Mono',
+      SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    letter-spacing: 0;
+  }
+
+  /* 13d. serif-display — serif headings + sans body + mono code. */
+  :root[data-ui-adapter-mode='shadcn'][data-font-style='serif-display']
+    .app-secondary-header
+    .entity-name,
+  :root[data-ui-adapter-mode='shadcn'][data-font-style='serif-display']
+    .settings-content
+    > header
+    .title,
+  :root[data-ui-adapter-mode='shadcn'][data-font-style='serif-display']
+    .schema-overview
+    h2,
+  :root[data-ui-adapter-mode='shadcn'][data-font-style='serif-display']
+    .databases-section
+    .section-title,
+  :root[data-ui-adapter-mode='shadcn'][data-font-style='serif-display']
+    h1,
+  :root[data-ui-adapter-mode='shadcn'][data-font-style='serif-display']
+    h2 {
+    font-family:
+      'Source Serif 4', 'Source Serif Pro', 'Iowan Old Style', 'Apple Garamond',
+      Garamond, 'Times New Roman', Times, serif;
+    letter-spacing: -0.005em;
+  }
+
+  /* serif-display also gets mono for data cells (heading/body split) */
+  :root[data-ui-adapter-mode='shadcn'][data-font-style='serif-display']
+    [data-sheet-element='data-cell'],
+  :root[data-ui-adapter-mode='shadcn'][data-font-style='serif-display']
+    .cell-fabric {
+    font-family: ui-monospace, 'JetBrains Mono', SFMono-Regular, Menlo,
+      Monaco, Consolas, monospace;
+  }
 </style>

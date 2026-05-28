@@ -2,6 +2,7 @@
   // TODO: Rename this component to something that represents layout for top-level page
   import AppHeader from '@mathesar/components/AppHeader.svelte';
   import { getUiAdapterModeAttribute } from '@mathesar/components/ui-adapters/uiAdapterUtils';
+  import { fontStyle } from '@mathesar/stores/fontStyle';
   import { tableStyle } from '@mathesar/stores/tableStyle';
   import { uiMode } from '@mathesar/stores/uiMode';
   import { preloadCommonData } from '@mathesar/utils/preloadData';
@@ -32,6 +33,7 @@
   $: if (typeof document !== 'undefined') {
     document.documentElement.dataset.uiAdapterMode = uiAdapterMode;
     document.documentElement.dataset.tableStyle = $tableStyle;
+    document.documentElement.dataset.fontStyle = $fontStyle;
   }
 </script>
 

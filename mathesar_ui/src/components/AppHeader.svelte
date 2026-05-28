@@ -33,6 +33,7 @@
 
   import Breadcrumb from './breadcrumb/Breadcrumb.svelte';
   import { getBreadcrumbItemsFromContext } from './breadcrumb/breadcrumbUtils';
+  import FontStyleSelect from './FontStyleSelect.svelte';
   import TableStyleSelect from './TableStyleSelect.svelte';
   import UiModeSelect from './UiModeSelect.svelte';
   import UiThemeSelect from './UiThemeSelect.svelte';
@@ -127,6 +128,8 @@
             <UiModeSelect />
             <MenuHeading>Table style</MenuHeading>
             <TableStyleSelect />
+            <MenuHeading>Font style</MenuHeading>
+            <FontStyleSelect />
             <MenuDivider />
           {/if}
 
