@@ -496,7 +496,12 @@ export class RecordsData {
         );
       }
       if (response.record_summaries) {
-        this.recordSummaries.reconstruct(
+        // Use setEntries (merge) instead of reconstruct (replace). Same
+        // scroll-flicker root cause as AssociatedCellData — paginated /
+        // partial fetches return only the summaries for the new page;
+        // wiping the cache made FK cells fall back to raw ids until the
+        // summaries reloaded, producing visible text churn on scroll.
+        this.recordSummaries.setEntries(
           Object.entries(response.record_summaries),
         );
       }
