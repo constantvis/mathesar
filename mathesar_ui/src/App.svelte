@@ -215,8 +215,13 @@
        upstream Mathesar variable names so every legacy component picks up
        the cool palette automatically when shadcn mode is active. */
 
-    /* surfaces */
-    --color-bg-base: hsl(0 0% 100%); /* shadcn background */
+    /* surfaces — translucent so the page-level gradient canvas
+       paints through every surface that uses this token (sheet,
+       inspector, modal, dropdown). Pair with backdrop-filter blur on
+       those surfaces for a frosted-glass look. Light mode is more
+       transparent (45%) than dark (60%) because light text needs the
+       wash behind it diluted more to stay readable. */
+    --color-bg-base: hsl(0 0% 100% / 45%); /* shadcn background */
     --color-bg-raised-1: hsl(240 5% 96%); /* shadcn muted */
     --color-bg-raised-2: hsl(240 5% 96%);
     --color-bg-input: hsl(0 0% 100%);
@@ -626,8 +631,8 @@
   :root[data-ui-adapter-mode='shadcn'] body.theme-dark,
   body.theme-dark
     :root[data-ui-adapter-mode='shadcn'] {
-    /* surfaces */
-    --color-bg-base: hsl(240 10% 4%);
+    /* surfaces — translucent so the gradient canvas paints through. */
+    --color-bg-base: hsl(240 10% 4% / 60%);
     --color-bg-raised-1: hsl(240 6% 10%);
     --color-bg-raised-2: hsl(240 6% 10%);
     --color-bg-input: hsl(240 6% 10%);
@@ -1389,6 +1394,11 @@
     border: 1px solid var(--glasklar-ui-border);
     border-radius: var(--glasklar-ui-radius-lg);
     background: var(--glasklar-ui-surface-popover);
+    /* Frosted glass: the surface-popover token is translucent, so blur
+       the gradient canvas (and any content under the dropdown) for a
+       proper shadcn-style popover. */
+    backdrop-filter: blur(16px) saturate(1.05);
+    -webkit-backdrop-filter: blur(16px) saturate(1.05);
     box-shadow: var(--glasklar-ui-shadow-popover);
     padding: var(--glasklar-ui-dropdown-padding);
     color: var(--glasklar-ui-text);
@@ -2152,6 +2162,8 @@
     border: 1px solid var(--glasklar-ui-border);
     border-radius: 12px;
     background: var(--glasklar-ui-surface);
+    backdrop-filter: blur(16px) saturate(1.05);
+    -webkit-backdrop-filter: blur(16px) saturate(1.05);
     color: var(--glasklar-ui-text);
     box-shadow:
       0 25px 50px -12px color-mix(in srgb, var(--color-shadow), transparent 0%),
@@ -2258,6 +2270,8 @@
     border-left-width: 1px;
     border-radius: var(--glasklar-ui-radius);
     padding: 0.6rem 0.75rem;
+    backdrop-filter: blur(16px) saturate(1.05);
+    -webkit-backdrop-filter: blur(16px) saturate(1.05);
   }
 
   :root[data-ui-adapter-mode='shadcn'] .message-box.has-icon {
@@ -2327,6 +2341,8 @@
     border-color: var(--glasklar-ui-border);
     border-radius: var(--glasklar-ui-radius-lg);
     background-color: var(--glasklar-ui-surface);
+    backdrop-filter: blur(16px) saturate(1.05);
+    -webkit-backdrop-filter: blur(16px) saturate(1.05);
     box-shadow: var(--glasklar-ui-shadow-sm);
   }
 
@@ -3103,6 +3119,8 @@
     border: 1px solid var(--glasklar-ui-border);
     border-radius: var(--glasklar-ui-radius-lg);
     background: var(--glasklar-ui-surface-popover);
+    backdrop-filter: blur(16px) saturate(1.05);
+    -webkit-backdrop-filter: blur(16px) saturate(1.05);
     box-shadow: var(--glasklar-ui-shadow-popover);
     color: var(--glasklar-ui-text);
     font-family: inherit;
