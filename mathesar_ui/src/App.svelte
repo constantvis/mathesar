@@ -2638,15 +2638,15 @@
     gap: 1.25rem;
   }
 
-  /* Filter bar as a clean card, but lighter than the legacy heavy
-     panel — borrow Card shadow-sm, no inner background tint. */
+  /* Minimalistic — no wrapping card. Search input + Create Schema
+     button sit directly on the canvas. */
   :root[data-ui-adapter-mode='shadcn'] .schema-list-wrapper .actions-container {
     gap: 0.75rem;
-    padding: 0.625rem 0.75rem;
-    border: 1px solid var(--glasklar-ui-border);
-    border-radius: var(--glasklar-ui-radius-lg);
-    background: var(--glasklar-ui-surface);
-    box-shadow: var(--glasklar-ui-shadow-sm);
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
   }
 
   :root[data-ui-adapter-mode='shadcn']
