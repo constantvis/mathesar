@@ -215,20 +215,19 @@
        upstream Mathesar variable names so every legacy component picks up
        the cool palette automatically when shadcn mode is active. */
 
-    /* surfaces — translucent so the page-level gradient canvas
-       paints through every surface that uses this token (sheet,
-       inspector, modal, dropdown). Pair with backdrop-filter blur on
-       those surfaces for a frosted-glass look. Light mode is more
-       transparent (45%) than dark (60%) because light text needs the
-       wash behind it diluted more to stay readable. */
-    --color-bg-base: hsl(0 0% 100% / 45%); /* shadcn background */
-    --color-bg-raised-1: hsl(240 5% 96%); /* shadcn muted */
-    --color-bg-raised-2: hsl(240 5% 96%);
-    --color-bg-input: hsl(0 0% 100%);
-    --color-bg-control: hsl(0 0% 100%);
+    /* surfaces — translucent (80% alpha) so the page-level gradient
+       canvas paints through every shadcn panel/popover surface (sheet
+       wrapper, inspector, modal, dropdown). Pair with backdrop-filter
+       blur on those surfaces for a frosted-glass look. Matches the
+       dark-mode treatment. */
+    --color-bg-base: hsl(0 0% 100% / 80%); /* shadcn background */
+    --color-bg-raised-1: hsl(240 5% 96% / 80%); /* shadcn muted */
+    --color-bg-raised-2: hsl(240 5% 96% / 80%);
+    --color-bg-input: hsl(0 0% 100% / 80%);
+    --color-bg-control: hsl(0 0% 100% / 80%);
     --color-bg-control-hover: hsl(240 5% 96%);
     --color-bg-control-active: hsl(240 5% 90%);
-    --card-background: hsl(0 0% 100%);
+    --card-background: hsl(0 0% 100% / 80%);
     --card-border-color: hsl(240 6% 90%);
 
     /* text */
@@ -430,6 +429,10 @@
     --glasklar-ui-surface-muted: var(--color-bg-raised-1);
     --glasklar-ui-surface-raised: var(--color-bg-raised-2);
     --glasklar-ui-surface-input: var(--color-bg-input);
+    /* OPAQUE cell bg — used by data cells in the virtualised sheet to
+       avoid a scroll shimmer (cells with alpha against a fixed
+       gradient canvas reveal the canvas sliding past during scroll). */
+    --glasklar-ui-cell-bg-solid: hsl(0 0% 100%);
     --glasklar-ui-surface-popover: color-mix(
       in srgb,
       var(--glasklar-ui-surface),
@@ -1989,7 +1992,14 @@
     --canvas-border-color: var(--glasklar-ui-border);
     --cell-border-horizontal: 1px solid var(--glasklar-ui-grid-border);
     --cell-border-vertical: 1px solid var(--glasklar-ui-grid-border);
-    --cell-bg-color-base: var(--glasklar-ui-surface);
+    /* IMPORTANT: cell base bg must be OPAQUE, not the translucent
+       surface token. Cells are virtualised + translated on scroll;
+       if they carry alpha against a fixed gradient canvas the
+       canvas slides past their content and creates a visible
+       "content changing" shimmer as you scroll. Sheet wrapper +
+       inspector + modal stay translucent; only the individual
+       data cells get a solid bg. */
+    --cell-bg-color-base: var(--glasklar-ui-cell-bg-solid);
     --cell-bg-color-row-hover: var(--glasklar-ui-hover);
     --cell-bg-color-row-selected: var(--glasklar-ui-selected);
     --sheet-header-height: var(--glasklar-ui-header-height);
@@ -3405,6 +3415,8 @@
        for frosted glass). 80% alpha = clearly dark but the wash
        and any blurred content behind still register. */
     --color-bg-base: hsl(240 10% 4% / 80%);
+    /* Opaque variant for data cells (see token def above for why). */
+    --glasklar-ui-cell-bg-solid: hsl(240 10% 6%);
     --color-bg-raised-1: hsl(240 6% 8% / 80%);
     --color-bg-raised-2: hsl(240 6% 10% / 80%);
     --color-bg-raised-3: hsl(240 6% 11% / 80%);
@@ -3677,6 +3689,62 @@
     justify-content: center;
     display: flex;
     background-color: var(--color-bg-base);
+  }
+
+  /* === 12c. Checkbox restyling =========================================
+     Bigger, shadcn-rounded-square, centered in cell. Mathesar's
+     legacy `.checkbox` is sized in `em` so in a 11.375px cell it
+     comes out at ~11px — barely visible. Bump to a fixed 1rem
+     size, switch border weight to 1px, round to shadcn 4px, and
+     align the cell content to centre so the box no longer hugs
+     the cell's left edge. */
+  :root[data-ui-adapter-mode='shadcn'] .checkbox {
+    --checkbox-size: 1.05rem;
+    --checkbox-margin-bottom: 0;
+    border: 1.5px solid var(--glasklar-ui-border-strong);
+    border-radius: 4px;
+    background: var(--glasklar-ui-cell-bg-solid, var(--glasklar-ui-surface));
+    transition: background 0.12s ease, border-color 0.12s ease;
+  }
+
+  :root[data-ui-adapter-mode='shadcn']
+    .checkbox:not(.no-hover):not(:disabled):not(.checked):not(
+      :indeterminate
+    ):hover {
+    background: var(--glasklar-ui-hover);
+    border-color: var(--glasklar-ui-text);
+  }
+
+  :root[data-ui-adapter-mode='shadcn'] .checkbox.checked,
+  :root[data-ui-adapter-mode='shadcn'] .checkbox:indeterminate {
+    border: 1.5px solid var(--glasklar-ui-text);
+    background: var(--glasklar-ui-text);
+  }
+
+  /* The mask-fill `background-color: white` inside ::before is white
+     in the base SCSS; in dark mode the checked fill is light and the
+     mark itself needs to be DARK so it remains readable. */
+  :root[data-ui-adapter-mode='shadcn']
+    body.theme-dark
+    .checkbox.checked::before,
+  :root[data-ui-adapter-mode='shadcn']
+    body.theme-dark
+    .checkbox:indeterminate::before {
+    background-color: var(--color-bg-base);
+  }
+
+  :root[data-ui-adapter-mode='shadcn'] .checkbox:focus-visible {
+    outline: 0;
+    box-shadow: 0 0 0 2px var(--glasklar-ui-focus-ring);
+  }
+
+  /* Boolean cell — centre the checkbox in the cell. */
+  :root[data-ui-adapter-mode='shadcn']
+    [data-sheet-element='data-cell']
+    .cell-fabric
+    .cell-wrapper {
+    justify-content: center;
+    align-items: center;
   }
 
   /* === 13. Font style variants =========================================
