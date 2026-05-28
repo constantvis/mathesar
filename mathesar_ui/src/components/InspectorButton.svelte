@@ -2,7 +2,8 @@
   import { _ } from 'svelte-i18n';
 
   import { iconInspector } from '@mathesar/icons';
-  import { Button, Icon } from '@mathesar-component-library';
+  import { UiButton } from '@mathesar/components/ui-adapters';
+  import { Icon } from '@mathesar-component-library';
 
   export let active: boolean;
   export let toggle: () => void;
@@ -10,9 +11,10 @@
 </script>
 
 <div class="inspector-button">
-  <Button
+  <UiButton
     appearance="custom"
     size="medium"
+    variant="toolbar"
     on:click={() => toggle()}
     {active}
     {disabled}
@@ -20,7 +22,7 @@
   >
     <Icon {...iconInspector} />
     <span class="responsive-button-label">{$_('inspector')}</span>
-  </Button>
+  </UiButton>
 </div>
 
 <style lang="scss">

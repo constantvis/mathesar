@@ -5,6 +5,7 @@
     type RequestStatus,
     States,
   } from '@mathesar/api/rest/utils/requestUtils';
+  import CellValue from '@mathesar/components/CellValue.svelte';
   import CellFabric from '@mathesar/components/cell-fabric/CellFabric.svelte';
   import CellBackground from '@mathesar/components/CellBackground.svelte';
   import { parseFileReference } from '@mathesar/components/file-attachments/fileUtils';
@@ -69,6 +70,16 @@
   $: isWithinPlaceholderRow = isPlaceholderRecordRow(row);
   $: isActiveCell = $selection.activeCellId === cellId;
   $: useScrollPreview = isScrolling && !isActiveCell;
+  $: scrollPreviewValue = getScrollPreviewValue(value);
+  $: isRightAlignedScrollPreview =
+    !isPrimaryKey &&
+    !isJoinedColumn(effectiveColumnFabric) &&
+    ['money', 'number'].includes(effectiveColumnFabric.abstractType.identifier);
+  $: usesTabularScrollPreview =
+    !isJoinedColumn(effectiveColumnFabric) &&
+    ['date', 'datetime', 'duration', 'money', 'number', 'time'].includes(
+      effectiveColumnFabric.abstractType.identifier,
+    );
   $: modificationStatus = useScrollPreview ? undefined : $modificationStatusMap.get(key);
   $: serverErrors =
     modificationStatus?.state === 'failure' ? modificationStatus?.errors : [];
@@ -115,9 +126,19 @@
     }
   }
 
-  function getScrollPreviewValue(cellValue: unknown): string {
-    if (cellValue === null) return 'NULL';
+  function getScrollPreviewValue(cellValue: unknown): string | null {
+    if (cellValue === null) return null;
     if (cellValue === undefined) return '';
+    if (!isJoinedColumn(effectiveColumnFabric)) {
+      return (
+        effectiveColumnFabric.formatCellValue(cellValue) ??
+        getRawScrollPreviewValue(cellValue)
+      );
+    }
+    return getRawScrollPreviewValue(cellValue);
+  }
+
+  function getRawScrollPreviewValue(cellValue: unknown): string {
     if (typeof cellValue === 'string') return cellValue;
     if (typeof cellValue === 'number' || typeof cellValue === 'boolean') {
       return String(cellValue);
@@ -135,7 +156,15 @@
   let:isActive
 >
   {#if useScrollPreview}
-    <div class="scroll-cell-preview">{getScrollPreviewValue(value)}</div>
+    <div
+      class="scroll-cell-preview"
+      class:h-align-right={isRightAlignedScrollPreview}
+      class:is-tabular-number={usesTabularScrollPreview}
+    >
+      <div class="scroll-cell-preview-content">
+        <CellValue value={scrollPreviewValue} />
+      </div>
+    </div>
   {:else}
     <CellBackground
       when={isJoinedColumn(columnFabric)}
@@ -195,12 +224,47 @@
 
 <style>
   .scroll-cell-preview {
+    box-sizing: border-box;
+    border-radius: 2px;
+    display: block;
+    font: inherit;
+    font-variant-numeric: inherit;
+    height: var(--cell-height, var(--default-cell-height));
+    min-height: var(--cell-height, var(--default-cell-height));
+    line-height: inherit;
     overflow: hidden;
+    position: relative;
     text-overflow: ellipsis;
     white-space: nowrap;
     width: 100%;
-    padding: var(--sm4);
-    color: var(--color-fg-base);
-    line-height: 1.2;
+    padding: var(--cell-padding, var(--sm4));
+    color: inherit;
+  }
+
+  .scroll-cell-preview.is-tabular-number {
+    display: flex;
+    flex-direction: column;
+    font-variant-numeric: tabular-nums;
+    text-overflow: clip;
+    white-space: normal;
+  }
+
+  .scroll-cell-preview-content {
+    overflow: hidden;
+    position: relative;
+    max-width: 100%;
+    text-align: inherit;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .scroll-cell-preview.h-align-right {
+    text-align: right;
+  }
+
+  .scroll-cell-preview :global(.postgres-keyword) {
+    color: var(--color-fg-faint);
+    font-weight: 300;
+    background: transparent;
   }
 </style>

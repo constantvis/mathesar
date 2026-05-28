@@ -1,14 +1,17 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte';
+  import { _ } from 'svelte-i18n';
 
   import BaseInput from '@mathesar-component-library-dir/common/base-components/BaseInput.svelte';
   import { getGloballyUniqueId } from '@mathesar-component-library-dir/common/utils/domUtils';
   import { getLabel as defaultGetLabel } from '@mathesar-component-library-dir/common/utils/formatUtils';
   import { Dropdown } from '@mathesar-component-library-dir/dropdown';
+  import { iconSearch } from '@mathesar-component-library-dir/common/icons';
   import {
     ListBox,
     ListBoxOptions,
   } from '@mathesar-component-library-dir/list-box';
+  import TextInputWithPrefix from '@mathesar/component-library/text-input/TextInputWithPrefix.svelte';
 
   import StringOrComponent from '../string-or-component/StringOrComponent.svelte';
 
@@ -85,6 +88,20 @@
   export let isOptionDisabled: DefinedProps['isOptionDisabled'] = () => false;
 
   export let autoSelect: DefinedProps['autoSelect'] = 'first';
+  export let searchable: DefinedProps['searchable'] = false;
+  export let searchPlaceholder: DefinedProps['searchPlaceholder'] = '';
+  export let searchAriaLabel: DefinedProps['searchAriaLabel'] = '';
+
+  let searchQuery = '';
+  $: normalizedSearchQuery = searchQuery.trim().toLowerCase();
+  $: filteredOptions =
+    searchable && normalizedSearchQuery
+      ? options.filter((option) =>
+          String(getLabel(option) ?? '')
+            .toLowerCase()
+            .includes(normalizedSearchQuery),
+        )
+      : options;
 
   function setValueFromArray(values: readonly (Option | undefined)[]) {
     const firstEnabledOption = values.find((opt) => !isOptionDisabled(opt));
@@ -131,13 +148,20 @@
   function getOptionWithTypeCast(option: unknown): Option {
     return option as Option;
   }
+
+  function handleSearchKeydown(e: KeyboardEvent): void {
+    if (e.key === 'Escape' || e.key === 'Tab') {
+      return;
+    }
+    e.stopPropagation();
+  }
 </script>
 
 <BaseInput {...$$restProps} {id} {disabled} />
 
 <ListBox
   selectionType="single"
-  {options}
+  options={filteredOptions}
   value={typeof value !== 'undefined' ? [value] : []}
   on:change={(e) => setValueFromArray(e.detail)}
   {labelKey}
@@ -161,7 +185,10 @@
       triggerClass,
     ].join(' ')}
     on:open={() => api.open()}
-    on:close={() => api.close()}
+    on:close={() => {
+      api.close();
+      searchQuery = '';
+    }}
     on:keydown={(e) => api.handleKeyDown(e)}
     on:focus
     on:blur
@@ -177,17 +204,39 @@
     </svelte:fragment>
 
     <svelte:fragment slot="content">
-      {#if $$slots.default}
+      {#if searchable}
+        <div class="search select-search">
+          <TextInputWithPrefix
+            prefixIcon={iconSearch}
+            placeholder={searchPlaceholder}
+            aria-label={searchAriaLabel || searchPlaceholder || ariaLabel}
+            focusOnMount
+            bind:value={searchQuery}
+            on:keydown={handleSearchKeydown}
+          />
+        </div>
+      {/if}
+      {#if filteredOptions.length === 0}
+        {#if options.length === 0 && $$slots.empty}
+          <slot name="empty" />
+        {:else}
+          <div class="select-empty">{$_('no_matching_records')}</div>
+        {/if}
+      {:else if $$slots.default}
         <ListBoxOptions id="{id}-select-options" let:option let:label>
           <slot option={getOptionWithTypeCast(option)} {label} />
         </ListBoxOptions>
       {:else}
         <ListBoxOptions id="{id}-select-options" />
       {/if}
-
-      {#if options.length === 0 && $$slots.empty}
-        <slot name="empty" />
-      {/if}
     </svelte:fragment>
   </Dropdown>
 </ListBox>
+
+<style lang="scss">
+  .select-empty {
+    padding: 0.5rem;
+    color: var(--glasklar-ui-text-muted, var(--color-fg-subtle-1));
+    font-size: var(--glasklar-ui-font-size-label, 0.75rem);
+  }
+</style>

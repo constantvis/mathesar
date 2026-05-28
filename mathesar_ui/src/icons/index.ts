@@ -10,6 +10,7 @@ import {
   faCaretRight,
   faCheck,
   faCheckSquare,
+  faChevronDown,
   faChevronRight,
   faCircleExclamation,
   faCircleInfo,
@@ -120,6 +121,7 @@ import {
   outcomeIcon,
   permissionsIcon,
   tableIcon,
+  tableLineIcon,
   treeChildNodeArrowIcon,
 } from './customIcons';
 
@@ -156,6 +158,7 @@ export const iconDeleteMajor: IconProps = { data: faTrashAlt };
 export const iconDeleteMinor: IconProps = { data: faTimes };
 export const iconEdit: IconProps = { data: faPencilAlt };
 export const iconEditUser: IconProps = { data: faUserEdit };
+export const iconExpandDown: IconProps = { data: faChevronDown };
 export const iconExpandRight: IconProps = { data: faChevronRight };
 export const iconExport: IconProps = { data: faDownload };
 export const iconImportData: IconProps = { data: faUpload };
@@ -210,6 +213,7 @@ export const iconConnection: IconProps = { data: faPlug };
 export const iconConstraint: IconProps = { data: faKey };
 export const iconConstraintUnique: IconProps = { data: faSnowflake };
 export const iconDatabase: IconProps = { data: databaseLineIcon };
+export const iconDatabaseShadcn: IconProps = { data: databaseLineIcon };
 export const iconDbIdentifierDelimiter: IconProps = { data: faArrowRight };
 export const iconDisplayOptions: IconProps = { data: faPalette };
 export const iconDocumentation: IconProps = { data: faBook };
@@ -235,9 +239,11 @@ export const iconSettingsMinor: IconProps = { data: faSliders };
 export const iconShortcuts: IconProps = { data: faStar };
 export const iconSorting: IconProps = { data: faSort };
 export const iconTable: IconProps = { data: tableIcon };
+export const iconTableShadcn: IconProps = { data: tableLineIcon };
 export const iconInspector: IconProps = { data: faInfo };
 export const iconTableLink: IconProps = { data: faLink };
 export const iconView: IconProps = { data: tableIcon };
+export const iconViewShadcn: IconProps = { data: tableLineIcon };
 export const iconTechnicalExplanation: IconProps = { data: faHammer };
 export const iconTreeChildNodeArrow: IconProps = {
   data: treeChildNodeArrowIcon,

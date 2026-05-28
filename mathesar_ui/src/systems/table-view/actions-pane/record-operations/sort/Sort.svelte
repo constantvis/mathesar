@@ -2,7 +2,6 @@
   import type { Writable } from 'svelte/store';
   import { _ } from 'svelte-i18n';
 
-  import ProcessedColumnName from '@mathesar/components/column/ProcessedColumnName.svelte';
   import SortEntry from '@mathesar/components/sort-entry/SortEntry.svelte';
   import type { SortDirection } from '@mathesar/components/sort-entry/utils';
   import {
@@ -16,11 +15,9 @@
     getTabularDataStoreFromContext,
   } from '@mathesar/stores/table-data';
   import { getColumnConstraintTypeByColumnId } from '@mathesar/utils/columnUtils';
-  import {
-    ButtonMenuItem,
-    DropdownMenu,
-    Icon,
-  } from '@mathesar-component-library';
+  import { DropdownMenu, Icon } from '@mathesar-component-library';
+
+  import ColumnPickerMenu from '../ColumnPickerMenu.svelte';
 
   const tabularData = getTabularDataStoreFromContext();
 
@@ -108,11 +105,11 @@
         disabled={availableColumns.length === 0}
         triggerAppearance="secondary"
       >
-        {#each availableColumns as column (column.id)}
-          <ButtonMenuItem on:click={() => addSortColumn(column.id)}>
-            <ProcessedColumnName processedColumn={column} />
-          </ButtonMenuItem>
-        {/each}
+        <ColumnPickerMenu
+          columns={availableColumns}
+          wrapInMenu={false}
+          onSelect={(column) => addSortColumn(column.id)}
+        />
       </DropdownMenu>
     </div>
   {/if}

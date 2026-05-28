@@ -25,6 +25,7 @@
   }
 
   onMount(() => {
+    api.setHeaderElement(headerRef);
     onHScrollOffsetChange($horizontalScrollOffset);
 
     const scrollListener = (event: Event) => {
@@ -36,6 +37,7 @@
 
     return () => {
       headerRef.removeEventListener('scroll', scrollListener);
+      api.setHeaderElement(undefined);
     };
   });
 </script>

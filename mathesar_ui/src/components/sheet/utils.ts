@@ -31,6 +31,8 @@ export interface SheetContext {
     handleDraggingColumnWidth: (columnId: string, width: number | null) => void;
     /** Called once — when the user is finished resizing a column */
     handleReleaseColumnWidth: (columnId: string, width: number | null) => void;
+    setHeaderElement: (element: HTMLElement | undefined) => void;
+    syncHeaderScrollOffset: (offset: number) => void;
     setHorizontalScrollOffset: (offset: number) => void;
     setScrollOffset: (offset: number) => void;
   };

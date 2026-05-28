@@ -1,11 +1,19 @@
 <script lang="ts">
-  import { iconExpandRight } from '@mathesar/icons';
+  import { iconExpandDown, iconExpandRight } from '@mathesar/icons';
   import type { Table } from '@mathesar/models/Table';
+  import { uiMode } from '@mathesar/stores/uiMode';
   import { recordSelectorContext } from '@mathesar/systems/record-selector/RecordSelectorController';
   import { Button, Icon, iconSearch } from '@mathesar-component-library';
 
+  import { getUiAdapterVariant } from '../ui-adapters/uiAdapterUtils';
+
   const recordSelector = recordSelectorContext.get();
   export let table: Table;
+
+  $: triggerIcon =
+    getUiAdapterVariant($uiMode) === 'shadcn'
+      ? iconExpandDown
+      : iconExpandRight;
 
   function handleClick() {
     recordSelector?.navigateToRecordPage({ tableOid: table.oid });
@@ -15,7 +23,7 @@
 <Button on:click={handleClick} appearance="ghost" class="padding-zero">
   <span class="trigger">
     <span class="icon"><Icon {...iconSearch} /></span>
-    <Icon {...iconExpandRight} class="expand-right-icon" />
+    <Icon {...triggerIcon} class="expand-right-icon" />
   </span>
 </Button>
 

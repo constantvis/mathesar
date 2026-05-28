@@ -4,7 +4,9 @@
 
   import type { ConstraintType } from '@mathesar/api/rpc/constraints';
   import ColumnName from '@mathesar/components/column/ColumnName.svelte';
+  import { getUiAdapterVariant } from '@mathesar/components/ui-adapters';
   import { iconDeleteMajor } from '@mathesar/icons';
+  import { uiMode } from '@mathesar/stores/uiMode';
   import type { ReadableMapLike } from '@mathesar/typeUtils';
   import {
     Button,
@@ -60,6 +62,7 @@
   $: allColumnIds = [...columns.values()].map(
     (column) => column.id,
   ) as ColumnLikeType['id'][];
+  $: isShadcn = getUiAdapterVariant($uiMode) === 'shadcn';
   $: columnIdentifiers = (() => {
     if (columnsAllowedForSelection) {
       const columnIdList = [columnIdentifier, ...columnsAllowedForSelection];
@@ -100,6 +103,9 @@
       disabled={disableColumnChange}
       getLabel={(columnId) =>
         columnId ? getColumnLabel(columns.get(columnId)) : ''}
+      searchable={isShadcn}
+      searchPlaceholder={$_('columns')}
+      searchAriaLabel={$_('columns')}
       on:change={update}
       let:option
     >

@@ -33,6 +33,7 @@
         api.setScrollOffset(e.detail);
       }}
       on:h-scroll={(e) => {
+        api.syncHeaderScrollOffset(e.detail);
         api.setHorizontalScrollOffset(e.detail);
       }}
     >

@@ -17,8 +17,10 @@
     calcNumberOfIndividualFilters,
     makeIndividualFilter,
   } from '@mathesar/components/filter/utils';
+  import { getUiAdapterVariant } from '@mathesar/components/ui-adapters';
   import { iconFiltering } from '@mathesar/icons';
   import { imperativeFilterControllerContext } from '@mathesar/pages/table/ImperativeFilterController';
+  import { uiMode } from '@mathesar/stores/uiMode';
   import {
     Filtering,
     type ProcessedColumn,
@@ -37,6 +39,10 @@
   $: ({ meta, processedColumns, recordsData } = $tabularData);
   $: ({ filtering } = meta);
   $: filteringSqlExpr = JSON.stringify($filtering.sqlExpr);
+  $: filterIcon =
+    getUiAdapterVariant($uiMode) === 'shadcn'
+      ? iconFiltering
+      : { ...iconFiltering, size: '0.8em' };
 
   const imperativeFilterController = imperativeFilterControllerContext.get();
 
@@ -123,7 +129,7 @@
 <OperationDropdown
   bind:isOpen
   label={$_('filter')}
-  icon={{ ...iconFiltering, size: '0.8em' }}
+  icon={filterIcon}
   badgeCount={individualFilterCount}
   {addColumnToOperation}
   applied={displayFilterList}

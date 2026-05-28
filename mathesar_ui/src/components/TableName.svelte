@@ -1,13 +1,16 @@
 <script lang="ts">
   import type { ComponentProps } from 'svelte';
 
+  import { iconTableShadcn, iconViewShadcn } from '@mathesar/icons';
   import type { Table } from '@mathesar/models/Table';
+  import { uiMode } from '@mathesar/stores/uiMode';
   import {
     getTableIcon,
     getTableIconColor,
     tableRequiresImportConfirmation,
   } from '@mathesar/utils/tables';
 
+  import { getUiAdapterVariant } from './ui-adapters/uiAdapterUtils';
   import NameWithIcon from './NameWithIcon.svelte';
 
   interface $$Props extends Omit<ComponentProps<NameWithIcon>, 'icon'> {
@@ -24,7 +27,12 @@
 
   $: isNotConfirmed = tableRequiresImportConfirmation(table);
   $: tableWithType = { ...table, type: table.type ?? 'table' };
-  $: tableIcon = getTableIcon(tableWithType);
+  $: tableIcon =
+    getUiAdapterVariant($uiMode) === 'shadcn'
+      ? tableWithType.type === 'view'
+        ? iconViewShadcn
+        : iconTableShadcn
+      : getTableIcon(tableWithType);
   $: iconColor = getTableIconColor(tableWithType);
 </script>
 

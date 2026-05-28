@@ -1,6 +1,9 @@
 <script lang="ts">
   // TODO: Rename this component to something that represents layout for top-level page
   import AppHeader from '@mathesar/components/AppHeader.svelte';
+  import { getUiAdapterModeAttribute } from '@mathesar/components/ui-adapters/uiAdapterUtils';
+  import { tableStyle } from '@mathesar/stores/tableStyle';
+  import { uiMode } from '@mathesar/stores/uiMode';
   import { preloadCommonData } from '@mathesar/utils/preloadData';
   import { makeStyleStringFromCssVariables } from '@mathesar-component-library';
   import type { CssVariablesObj } from '@mathesar-component-library/types';
@@ -15,9 +18,29 @@
   $: style = cssVariables
     ? makeStyleStringFromCssVariables(cssVariables)
     : undefined;
+  $: uiAdapterMode = getUiAdapterModeAttribute($uiMode);
+
+  /*
+   * Modals and dropdowns are portaled to <body>, escaping any descendant
+   * scope we attach to .app-layout. Mirroring the data attribute onto the
+   * root element lets [data-ui-adapter-mode] CSS reach portaled content too.
+   *
+   * data-table-style is mirrored alongside so the grid variant selector
+   * works the same way (the picker is global so portaled scoped popovers
+   * inside the table page still get the active style).
+   */
+  $: if (typeof document !== 'undefined') {
+    document.documentElement.dataset.uiAdapterMode = uiAdapterMode;
+    document.documentElement.dataset.tableStyle = $tableStyle;
+  }
 </script>
 
-<div class="app-layout" class:fit-viewport={fitViewport} {style}>
+<div
+  class="app-layout"
+  class:fit-viewport={fitViewport}
+  data-ui-adapter-mode={uiAdapterMode}
+  {style}
+>
   {#if showHeader}
     <div class="app-layout-header">
       <AppHeader />

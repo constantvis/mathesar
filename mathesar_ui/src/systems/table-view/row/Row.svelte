@@ -48,6 +48,12 @@
   $: hasWholeRowErrors = wholeRowState === 'failure';
   /** Including whole row errors and individual cell errors */
   $: hasAnyErrors = !!status?.errorsFromWholeRowAndCells?.length;
+  $: rowParity =
+    'rowNumber' in rowDescriptor
+      ? rowDescriptor.rowNumber % 2 === 0
+        ? 'even'
+        : 'odd'
+      : undefined;
 
   async function handleRowHeaderMouseDown(e: MouseEvent) {
     if (!isPlaceholderRecordRow(row)) return;
@@ -73,6 +79,7 @@
     class:created={creationStatus === 'success'}
     class:is-group-header={isGroupHeaderRow(row)}
     class:is-add-placeholder={isPlaceholderRecordRow(row)}
+    data-row-parity={rowParity}
     {...htmlAttributes}
     style="--cell-height:{ROW_HEIGHT_PX - 1}px;{styleString}"
   >

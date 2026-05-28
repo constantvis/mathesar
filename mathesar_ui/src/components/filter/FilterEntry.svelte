@@ -1,6 +1,7 @@
 <script lang="ts">
   import { createEventDispatcher, onDestroy } from 'svelte';
   import { readable } from 'svelte/store';
+  import { _ } from 'svelte-i18n';
 
   import type { ConstraintType } from '@mathesar/api/rpc/constraints';
   import DynamicInput from '@mathesar/components/cell-fabric/DynamicInput.svelte';
@@ -9,11 +10,13 @@
     getDbTypeBasedSimpleInputCap,
   } from '@mathesar/components/cell-fabric/utils';
   import ColumnName from '@mathesar/components/column/ColumnName.svelte';
+  import { getUiAdapterVariant } from '@mathesar/components/ui-adapters';
   import type {
     AbstractTypeFilterDefinition,
     FilterId,
   } from '@mathesar/stores/abstract-types/types';
   import type AssociatedCellData from '@mathesar/stores/AssociatedCellData';
+  import { uiMode } from '@mathesar/stores/uiMode';
   import type { ReadableMapLike } from '@mathesar/typeUtils';
   import { InputGroup, Select } from '@mathesar-component-library';
   import {
@@ -51,6 +54,7 @@
     undefined;
 
   $: columnIdentifiers = [...columns.values()].map((_column) => _column.id);
+  $: isShadcn = getUiAdapterVariant($uiMode) === 'shadcn';
   $: selectedColumn = columnIdentifier
     ? columns.get(columnIdentifier)
     : undefined;
@@ -199,6 +203,9 @@
       options={columnIdentifiers}
       bind:value={columnIdentifier}
       getLabel={getColumnName}
+      searchable={isShadcn}
+      searchPlaceholder={$_('columns')}
+      searchAriaLabel={$_('columns')}
       on:change={onColumnChange}
       triggerClass="filter-column-id"
       disabled={disableColumnChange}

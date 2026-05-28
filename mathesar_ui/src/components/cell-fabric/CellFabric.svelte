@@ -10,6 +10,7 @@
 
   import type { HorizontalAlignment } from './data-types/components/typeDefinitions';
   import type { CellColumnFabric } from './types';
+  import { getCellFabricComponentProps } from './cellFabricProps';
 
   export let columnFabric: CellColumnFabric;
   export let value: unknown;
@@ -41,6 +42,26 @@
   $: ({ cellComponentAndProps } = columnFabric);
   $: ({ component } = cellComponentAndProps);
   $: props = cellComponentAndProps.props as Record<string, unknown>;
+  $: componentProps = getCellFabricComponentProps(component, {
+    ...props,
+    canViewLinkedEntities,
+    columnFabric,
+    disabled,
+    fileManifest,
+    fileRequestParams,
+    horizontalAlignment,
+    isActive,
+    isIndependentOfSheet,
+    isProcessing,
+    joinedRecordSummariesMap,
+    recordSummary,
+    searchValue,
+    setFileManifest,
+    setRecordSummary,
+    setValue,
+    showTruncationPopover,
+    value,
+  });
 </script>
 
 <div
@@ -52,24 +73,7 @@
 >
   <svelte:component
     this={component}
-    {...props}
-    {columnFabric}
-    {isActive}
-    {disabled}
-    {isIndependentOfSheet}
-    {horizontalAlignment}
-    {recordSummary}
-    {setRecordSummary}
-    {joinedRecordSummariesMap}
-    {fileManifest}
-    {setFileManifest}
-    {fileRequestParams}
-    {searchValue}
-    {isProcessing}
-    {showTruncationPopover}
-    {canViewLinkedEntities}
-    {value}
-    {setValue}
+    {...componentProps}
     on:movementKeyDown
   />
 

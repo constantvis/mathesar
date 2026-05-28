@@ -8,10 +8,12 @@
   } from '@mathesar/component-library';
   import focusTrap from '@mathesar/component-library/common/actions/focusTrap';
   import TextInputWithPrefix from '@mathesar/component-library/text-input/TextInputWithPrefix.svelte';
-  import { iconExpandRight } from '@mathesar/icons';
+  import { iconExpandDown, iconExpandRight } from '@mathesar/icons';
   import { modal } from '@mathesar/stores/modal';
+  import { uiMode } from '@mathesar/stores/uiMode';
 
   import ConnectDatabaseModal from '../../systems/databases/create-database/ConnectDatabaseModal.svelte';
+  import { getUiAdapterVariant } from '../ui-adapters/uiAdapterUtils';
 
   import BreadcrumbSelectorRow from './BreadcrumbSelectorRow.svelte';
   import BreadcrumbSelectorSection from './BreadcrumbSelectorSection.svelte';
@@ -49,6 +51,10 @@
     ...persistentLinks,
   ];
   $: allFilteredEntries, (selectedIndex = -1);
+  $: triggerIcon =
+    getUiAdapterVariant($uiMode) === 'shadcn'
+      ? iconExpandDown
+      : iconExpandRight;
 
   function scrollToSelected() {
     if (selectedIndex >= 0 && contentElement) {
@@ -134,7 +140,7 @@
     class="padding-zero"
   >
     <span class="trigger">
-      <Icon {...iconExpandRight} />
+      <Icon {...triggerIcon} />
     </span>
   </Button>
 
@@ -151,6 +157,7 @@
       <div class="search">
         <TextInputWithPrefix
           prefixIcon={iconSearch}
+          aria-label={triggerLabel}
           bind:value={filterString}
           bind:element={textInputEl}
         />

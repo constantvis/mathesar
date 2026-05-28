@@ -14,7 +14,7 @@
    * 3. Added perfect scrollbar, utilized it's event instead of native
    */
 
-  const IS_SCROLLING_DEBOUNCE_INTERVAL = 150;
+  const IS_SCROLLING_DEBOUNCE_INTERVAL = 300;
   const DEFAULT_ESTIMATED_ITEM_SIZE = 30;
   const USE_NATIVE_SCROLLBAR = true;
 </script>
@@ -101,10 +101,15 @@
   });
 
   $: innerStyle =
-    `height:${estimatedTotalSize + paddingBottom}px;` +
+    `height:calc(${estimatedTotalSize + paddingBottom}px + ` +
+    `var(--virtual-list-padding-top, 0px));` +
     // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
     `width:${width ? `${width}px` : '100%'};` +
     `${isScrolling ? 'pointer-events:none;' : ''}`;
+
+  $: itemContainerStyle =
+    `position:relative;height:${estimatedTotalSize}px;width:100%;` +
+    'transform:translateY(var(--virtual-list-padding-top, 0px));';
 
   function onHscrollChange(_hscrollOffset: number) {
     if (
@@ -279,36 +284,40 @@
     _scrollOffset: number,
     _horizontalScrollOffset: number,
   ): void {
-    if (outerRef && psRef) {
+    if (outerRef) {
       const newOffset = Math.max(_scrollOffset, 0);
       const newHOffset = Math.max(_horizontalScrollOffset, 0);
 
       let isUpdateRequired = false;
       if (scrollOffset !== newOffset) {
         outerRef.scrollTop = newOffset;
+        scrollOffset = newOffset;
         isUpdateRequired = true;
       }
       if (horizontalScrollOffset !== newHOffset) {
         outerRef.scrollLeft = newHOffset;
+        horizontalScrollOffset = newHOffset;
         isUpdateRequired = true;
       }
-      if (isUpdateRequired) {
+      if (isUpdateRequired && psRef) {
         psRef.update();
       }
     }
   }
 
   export function scrollToBottom(): void {
-    if (outerRef && psRef) {
+    if (outerRef) {
       outerRef.scrollTop = outerRef.scrollHeight;
-      psRef.update();
+      scrollOffset = outerRef.scrollTop;
+      psRef?.update();
     }
   }
 
   export function scrollToTop(): void {
-    if (outerRef && psRef) {
+    if (outerRef) {
       outerRef.scrollTop = 0;
-      psRef.update();
+      scrollOffset = 0;
+      psRef?.update();
     }
   }
 
@@ -327,7 +336,9 @@
   bind:this={outerRef}
 >
   <div style={innerStyle}>
-    <slot {items} {api} />
+    <div style={itemContainerStyle}>
+      <slot {items} {api} />
+    </div>
   </div>
 </div>
 

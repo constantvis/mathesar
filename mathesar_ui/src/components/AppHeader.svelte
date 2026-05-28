@@ -33,6 +33,8 @@
 
   import Breadcrumb from './breadcrumb/Breadcrumb.svelte';
   import { getBreadcrumbItemsFromContext } from './breadcrumb/breadcrumbUtils';
+  import TableStyleSelect from './TableStyleSelect.svelte';
+  import UiModeSelect from './UiModeSelect.svelte';
   import UiThemeSelect from './UiThemeSelect.svelte';
 
   const commonData = preloadCommonData();
@@ -119,6 +121,14 @@
             <UiThemeSelect />
           </div>
           <MenuDivider />
+
+          {#if $userProfile.isMathesarAdmin}
+            <MenuHeading>UI mode</MenuHeading>
+            <UiModeSelect />
+            <MenuHeading>Table style</MenuHeading>
+            <TableStyleSelect />
+            <MenuDivider />
+          {/if}
 
           <MenuHeading>{$_('resources')}</MenuHeading>
           <LinkMenuItem

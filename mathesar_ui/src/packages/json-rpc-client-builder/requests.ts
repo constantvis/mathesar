@@ -12,6 +12,15 @@ export interface RpcResult<T> {
 
 export type RpcResponse<T> = RpcResult<T> | RpcError;
 
+export interface RpcDownloadProgress {
+  loadedBytes: number;
+  totalBytes?: number;
+}
+
+export type RpcDownloadProgressCallback = (
+  progress: RpcDownloadProgress,
+) => void;
+
 interface RpcRequestBody<T> {
   id: number;
   jsonrpc: typeof jsonrpc;
@@ -56,7 +65,51 @@ function makeRpcResponse<T = unknown>(value: unknown): RpcResponse<T> {
   return RpcError.fromAnything(value);
 }
 
-function send<T>(request: RpcRequest<T>): CancellablePromise<RpcResponse<T>> {
+function getContentLength(response: Response): number | undefined {
+  const contentLength = response.headers.get('content-length');
+  if (!contentLength) return undefined;
+  const totalBytes = Number(contentLength);
+  return Number.isFinite(totalBytes) && totalBytes > 0 ? totalBytes : undefined;
+}
+
+async function readJsonResponse(
+  response: Response,
+  onDownloadProgress?: RpcDownloadProgressCallback,
+): Promise<unknown> {
+  if (!onDownloadProgress || !response.body) {
+    return response.json();
+  }
+
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  const totalBytes = getContentLength(response);
+  let loadedBytes = 0;
+
+  onDownloadProgress({ loadedBytes, totalBytes });
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    if (value) {
+      chunks.push(value);
+      loadedBytes += value.byteLength;
+      onDownloadProgress({ loadedBytes, totalBytes });
+    }
+  }
+
+  const body = new Uint8Array(loadedBytes);
+  let offset = 0;
+  chunks.forEach((chunk) => {
+    body.set(chunk, offset);
+    offset += chunk.byteLength;
+  });
+  return JSON.parse(new TextDecoder().decode(body));
+}
+
+function send<T>(
+  request: RpcRequest<T>,
+  onDownloadProgress?: RpcDownloadProgressCallback,
+): CancellablePromise<RpcResponse<T>> {
   const fetch = cancellableFetch(request.endpoint, {
     method: 'POST',
     headers: {
@@ -69,7 +122,7 @@ function send<T>(request: RpcRequest<T>): CancellablePromise<RpcResponse<T>> {
     (resolve) =>
       void fetch
         .then(
-          (response) => response.json(),
+          (response) => readJsonResponse(response, onDownloadProgress),
           // If the fetch promise rejects (e.g. for a network connection error),
           // we still want to _resolve_ the returned promise (instead of
           // _rejecting_ it). This way all error-handling is done consistently
@@ -190,6 +243,23 @@ export class RpcRequest<T> {
     );
   }
 
+  runWithProgress(
+    onDownloadProgress: RpcDownloadProgressCallback,
+  ): CancellablePromise<T> {
+    const responsePromise = this.sendWithProgress(onDownloadProgress);
+    return new CancellablePromise(
+      (resolve, reject) =>
+        void responsePromise.then(
+          (rpcResponse) =>
+            rpcResponse.status === 'ok'
+              ? resolve(rpcResponse.value)
+              : reject(rpcResponse),
+          (error) => reject(RpcError.fromAnything(error)),
+        ),
+      () => responsePromise.cancel(),
+    );
+  }
+
   /**
    * Provides more fine-grained control instead of `run` by returning
    * ApiResult which can be type-narrowed manually.
@@ -198,6 +268,12 @@ export class RpcRequest<T> {
    */
   send(): CancellablePromise<RpcResponse<T>> {
     return send(this);
+  }
+
+  sendWithProgress(
+    onDownloadProgress: RpcDownloadProgressCallback,
+  ): CancellablePromise<RpcResponse<T>> {
+    return send(this, onDownloadProgress);
   }
 }
 

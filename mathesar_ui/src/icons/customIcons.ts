@@ -42,6 +42,25 @@ export const tableIcon: IconProps['data'] = {
   ],
 };
 
+export const tableLineIcon: IconProps['data'] = {
+  icon: [
+    24,
+    24,
+    [],
+    '',
+    [
+      {
+        fillRule: 'evenodd',
+        clipRule: 'evenodd',
+        path:
+          'M5 4H19C19.5523 4 20 4.44772 20 5V19C20 19.5523 19.5523 20 19 20H5C4.44772 20 4 ' +
+          '19.5523 4 19V5C4 4.44772 4.44772 4 5 4ZM5.5 5.5V18.5H18.5V5.5H5.5Z',
+      },
+      'M5 8.75H19V10.25H5V8.75ZM10.75 5H12.25V19H10.75V5Z',
+    ],
+  ],
+};
+
 export const explorationIcon: IconProps['data'] = {
   icon: [
     24,

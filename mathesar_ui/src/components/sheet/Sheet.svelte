@@ -98,6 +98,7 @@
   ));
 
   const selectionInProgress = writable(false);
+  let headerElement: HTMLElement | undefined;
   const stores = {
     columnStyleMap: writable(columnStyleMap),
     rowWidth: writable(rowWidth),
@@ -130,6 +131,14 @@
       },
       handleReleaseColumnWidth: (id, width) => {
         persistColumnWidths(getSmartColumnWidthsMap(id, width));
+      },
+      setHeaderElement: (element) => {
+        headerElement = element;
+      },
+      syncHeaderScrollOffset: (offset) => {
+        if (headerElement && headerElement.scrollLeft !== offset) {
+          headerElement.scrollLeft = offset;
+        }
       },
       setHorizontalScrollOffset: (offset) => {
         horizontalScrollOffset = offset;

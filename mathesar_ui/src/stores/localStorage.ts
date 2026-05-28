@@ -8,6 +8,8 @@ export const LOCAL_STORAGE_KEYS = {
 
   // UI theme
   uiThemePreference: 'ui-theme-preference',
+  uiMode: 'glasklar-ui-mode',
+  tableStyle: 'glasklar-table-style',
 
   // Table inspector
   tableInspectorVisible: 'table-inspector-visible',

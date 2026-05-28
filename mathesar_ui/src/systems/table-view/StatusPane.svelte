@@ -7,11 +7,15 @@
   import { iconAddNew } from '@mathesar/icons';
   import { getTabularDataStoreFromContext } from '@mathesar/stores/table-data';
   import { getFirstEditableColumn } from '@mathesar/stores/table-data/processedColumns';
+  import type { RpcDownloadProgress } from '@mathesar/packages/json-rpc-client-builder';
   import Pagination, { UNLIMITED_PAGE_SIZE } from '@mathesar/utils/Pagination';
   import { Select, SpinnerButton } from '@mathesar-component-library';
 
   const tabularData = getTabularDataStoreFromContext();
   const numberFormatter = new Intl.NumberFormat();
+  const byteFormatter = new Intl.NumberFormat(undefined, {
+    maximumFractionDigits: 1,
+  });
   const pageSizeOptions = [
     10,
     50,
@@ -48,8 +52,14 @@
   } = $tabularData);
   $: ({ pagination } = meta);
   $: ({ leftBound, rightBound } = $pagination);
-  $: ({ totalCount, state, newRecords, persistedNewRecords } = recordsData);
+  $: ({ totalCount, state, newRecords, persistedNewRecords, downloadProgress } =
+    recordsData);
   $: recordState = $state;
+  $: downloadProgressLabel = formatDownloadProgress($downloadProgress);
+  $: loadingStatusLabel =
+    recordState === States.Loading
+      ? downloadProgressLabel ?? 'Waiting for data'
+      : undefined;
   $: columnsFetchStatus = columnsDataStore.fetchStatus;
   $: max = Math.min($totalCount ?? 0, rightBound);
   $: isError =
@@ -75,6 +85,23 @@
   function getPageSizeLabel(option: number | undefined): string {
     if (option === UNLIMITED_PAGE_SIZE) return $_('unlimited');
     return numberFormatter.format(option ?? 0);
+  }
+
+  function formatBytes(bytes: number): string {
+    if (bytes < 1024 * 1024) {
+      return `${byteFormatter.format(bytes / 1024)}KB`;
+    }
+    return `${byteFormatter.format(bytes / 1024 / 1024)}MB`;
+  }
+
+  function formatDownloadProgress(
+    progress: RpcDownloadProgress | undefined,
+  ): string | undefined {
+    if (!progress || progress.loadedBytes <= 0) return undefined;
+    const loaded = formatBytes(progress.loadedBytes);
+    return progress.totalBytes
+      ? `${loaded} / ${formatBytes(progress.totalBytes)}`
+      : loaded;
   }
 
   async function addRecord() {
@@ -130,6 +157,10 @@
         {$_('no_records_found')}
       {/if}
 
+      {#if loadingStatusLabel}
+        <span class="download-progress">{loadingStatusLabel}</span>
+      {/if}
+
       {#if width > breakpoints.newAndUnsavedRecordCounts}
         {#if $persistedNewRecords.length > 0}
           <span class="pill">
@@ -175,7 +206,7 @@
             getLabel={getPageSizeLabel}
             on:change={(e) => {
               $pagination = new Pagination({
-                ...$pagination,
+                page: 1,
                 size: e.detail,
               });
             }}
@@ -217,6 +248,12 @@
       border: 1px solid var(--color-border-control);
       border-radius: var(--border-radius-m);
       padding: var(--sm6);
+    }
+
+    .download-progress {
+      color: var(--color-fg-subtle-1);
+      font-size: var(--sm2);
+      white-space: nowrap;
     }
     .page-size-dropdown {
       width: min-content;

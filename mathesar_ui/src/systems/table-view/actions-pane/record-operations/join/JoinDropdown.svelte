@@ -3,7 +3,7 @@
 
   import { iconTableLink } from '@mathesar/icons';
   import { getTabularDataStoreFromContext } from '@mathesar/stores/table-data';
-  import { BadgeCount, Dropdown, Icon } from '@mathesar-component-library';
+  import OperationDropdown from '../OperationDropdown.svelte';
 
   import Join from './Join.svelte';
 
@@ -12,31 +12,20 @@
   $: joining = meta.joining;
 </script>
 
-<Dropdown
-  showArrow={false}
-  triggerAppearance="secondary"
-  {...$$restProps}
-  ariaLabel={$_('join')}
+<OperationDropdown
+  label={$_('join')}
+  icon={iconTableLink}
+  badgeCount={$joining.simpleManyToMany.size}
+  applied={true}
   autoReposition
+  {...$$restProps}
 >
-  <svelte:fragment slot="trigger">
-    <Icon {...iconTableLink} />
-    <span class="responsive-button-label with-badge">
-      {$_('join')}
-      <BadgeCount value={$joining.simpleManyToMany.size} />
-    </span>
-  </svelte:fragment>
-  <div slot="content" class="content">
+  <div class="content">
     <Join />
   </div>
-</Dropdown>
+</OperationDropdown>
 
 <style lang="scss">
-  .with-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--sm5);
-  }
   .content {
     padding: var(--sm3) var(--sm5) var(--sm1) var(--sm5);
   }

@@ -26,6 +26,7 @@ import type { Database } from '@mathesar/models/Database';
 import type { Table } from '@mathesar/models/Table';
 import {
   RpcError,
+  type RpcDownloadProgress,
   type RpcResponse,
   batchSend,
 } from '@mathesar/packages/json-rpc-client-builder';
@@ -238,6 +239,8 @@ export class RecordsData {
 
   totalCount: Writable<number | undefined>;
 
+  downloadProgress: Writable<RpcDownloadProgress | undefined>;
+
   error: Writable<string | undefined>;
 
   /** Keys are row selection ids */
@@ -249,11 +252,15 @@ export class RecordsData {
 
   private fetchInProgress = false;
 
+  private latestFetchRequestId = 0;
+
   private queuedFetchOptions: FetchOptions | undefined;
 
   private projectedColumnAttnums: Writable<number[] | undefined>;
 
-  private columnProjectionUpdateHandle: ReturnType<typeof setTimeout> | undefined;
+  private columnProjectionUpdateHandle:
+    | ReturnType<typeof setTimeout>
+    | undefined;
 
   private queuedColumnProjectionKey: string | undefined;
 
@@ -297,6 +304,7 @@ export class RecordsData {
     this.newRecords = writable([]);
     this.grouping = writable(undefined);
     this.totalCount = writable(undefined);
+    this.downloadProgress = writable(undefined);
     this.error = writable(undefined);
     this.meta = meta;
     this.columnsDataStore = columnsDataStore;
@@ -320,22 +328,21 @@ export class RecordsData {
     );
 
     // TODO: Create base class to abstract subscriptions and unsubscriptions
-    this.requestParamsUnsubscriber =
-      derived(
-        [this.meta.recordsRequestParamsData, this.projectedColumnAttnums],
-        ([requestParams, projectedColumnAttnums]) => ({
-          requestParams,
-          projectedColumnAttnums,
-        }),
-      ).subscribe(({ projectedColumnAttnums }) => {
-        if (
-          this.requireColumnProjection &&
-          projectedColumnAttnums === undefined
-        ) {
-          return;
-        }
-        void this.fetch({ skipIfParamsUnchanged: true });
-      });
+    this.requestParamsUnsubscriber = derived(
+      [this.meta.recordsRequestParamsData, this.projectedColumnAttnums],
+      ([requestParams, projectedColumnAttnums]) => ({
+        requestParams,
+        projectedColumnAttnums,
+      }),
+    ).subscribe(({ projectedColumnAttnums }) => {
+      if (
+        this.requireColumnProjection &&
+        projectedColumnAttnums === undefined
+      ) {
+        return;
+      }
+      void this.fetch({ skipIfParamsUnchanged: true });
+    });
   }
 
   setColumnProjection(columnIds: Iterable<string>): void {
@@ -385,6 +392,8 @@ export class RecordsData {
       skipIfParamsUnchanged: false,
       ...opts,
     };
+    let fetchRequestId = 0;
+    let promise: CancellablePromise<RecordsResponse> | undefined;
 
     try {
       const params = get(this.meta.recordsRequestParamsData);
@@ -427,17 +436,17 @@ export class RecordsData {
       }
 
       if (this.fetchInProgress) {
-        this.queuedFetchOptions = {
-          ...options,
-          skipIfParamsUnchanged: true,
-        };
-        return undefined;
+        this.promise?.cancel();
+        this.fetchInProgress = false;
+        this.queuedFetchOptions = undefined;
       }
       this.latestFetchKey = fetchKey;
       this.fetchInProgress = true;
 
-      this.promise?.cancel();
+      fetchRequestId = this.latestFetchRequestId + 1;
+      this.latestFetchRequestId = fetchRequestId;
       this.error.set(undefined);
+      this.downloadProgress.set(undefined);
       const hasFetchedRows = get(this.fetchedRecordRows).length > 0;
 
       if (options.clearNewRecords && !hasFetchedRows) {
@@ -450,11 +459,28 @@ export class RecordsData {
         this.meta.clearAllStatusesAndErrors();
       }
 
-      this.promise = fuzzySearchParams.length
-        ? api.records.search(recordSearchParams).run()
-        : api.records.list(recordsListParams).run();
+      const onDownloadProgress = (progress: RpcDownloadProgress) => {
+        if (fetchRequestId === this.latestFetchRequestId) {
+          this.downloadProgress.set(progress);
+        }
+      };
+      promise = fuzzySearchParams.length
+        ? api.records
+            .search(recordSearchParams)
+            .runWithProgress(onDownloadProgress)
+        : api.records
+            .list(recordsListParams)
+            .runWithProgress(onDownloadProgress);
+      this.promise = promise;
 
-      const response = await this.promise;
+      const response = await promise;
+      if (
+        fetchRequestId !== this.latestFetchRequestId ||
+        promise.isCancelled ||
+        !response
+      ) {
+        return undefined;
+      }
       const totalCount = response.count || 0;
       const grouping = response.grouping
         ? buildGrouping(response.grouping)
@@ -491,13 +517,25 @@ export class RecordsData {
       this.totalCount.set(totalCount);
       this.error.set(undefined);
     } catch (err) {
+      if (
+        fetchRequestId !== this.latestFetchRequestId ||
+        promise?.isCancelled
+      ) {
+        return undefined;
+      }
       this.state.set(States.Error);
       this.error.set(
         err instanceof Error ? err.message : 'Unable to load records',
       );
     } finally {
-      this.fetchInProgress = false;
-      if (this.queuedFetchOptions) {
+      if (fetchRequestId === this.latestFetchRequestId) {
+        this.fetchInProgress = false;
+        this.downloadProgress.set(undefined);
+      }
+      if (
+        fetchRequestId === this.latestFetchRequestId &&
+        this.queuedFetchOptions
+      ) {
         const queuedFetchOptions = this.queuedFetchOptions;
         this.queuedFetchOptions = undefined;
         if (get(this.fetchedRecordRows).length > 0) {

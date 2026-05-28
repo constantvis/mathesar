@@ -73,7 +73,7 @@
   function changePageSize(newSize: number) {
     pagination = new Pagination({
       size: newSize,
-      page: pagination.page,
+      page: 1,
     });
     dispatch('change', pagination);
   }

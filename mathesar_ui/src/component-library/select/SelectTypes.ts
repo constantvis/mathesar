@@ -17,6 +17,9 @@ export interface SelectProps<Option> extends BaseInputProps {
   isOptionDisabled?: ListBoxProps<
     Option | undefined
   >['checkIfOptionIsDisabled'];
+  searchable?: boolean;
+  searchPlaceholder?: string;
+  searchAriaLabel?: string;
   /**
    * When options change and the selected value is either undefined or
    * not present in the options array, autoSelect determines how to

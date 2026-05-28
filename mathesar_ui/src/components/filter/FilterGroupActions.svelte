@@ -5,13 +5,17 @@
 
   import type { ConstraintType } from '@mathesar/api/rpc/constraints';
   import ColumnName from '@mathesar/components/column/ColumnName.svelte';
+  import TextInputWithPrefix from '@mathesar/component-library/text-input/TextInputWithPrefix.svelte';
+  import { getUiAdapterVariant } from '@mathesar/components/ui-adapters';
   import { iconAddFilter, iconFilterGroup } from '@mathesar/icons';
+  import { uiMode } from '@mathesar/stores/uiMode';
   import type { ReadableMapLike } from '@mathesar/typeUtils';
   import {
     Button,
     ButtonMenuItem,
     DropdownMenu,
     Icon,
+    iconSearch,
   } from '@mathesar-component-library';
 
   import {
@@ -46,6 +50,7 @@
     );
     if (filter) {
       filterGroup.addArgument(filter);
+      searchQuery = '';
       dispatch('update');
     }
   }
@@ -60,6 +65,21 @@
     );
     dispatch('update');
   }
+
+  let searchQuery = '';
+
+  $: isShadcn = getUiAdapterVariant($uiMode) === 'shadcn';
+  $: normalizedSearchQuery = searchQuery.trim().toLowerCase();
+  $: columnOptions = [...columns.values()];
+  $: visibleColumnOptions =
+    isShadcn && normalizedSearchQuery
+      ? columnOptions.filter((columnInfo) =>
+          [getColumnLabel(columnInfo), columnInfo.column.type ?? '']
+            .join(' ')
+            .toLowerCase()
+            .includes(normalizedSearchQuery),
+        )
+      : columnOptions;
 </script>
 
 <div class="filter-group-actions">
@@ -74,19 +94,34 @@
       label={$_('add_filter')}
       triggerAppearance="secondary"
     >
-      {#each [...columns.values()] as columnInfo (columnInfo.id)}
-        <ButtonMenuItem on:click={() => addFilter(columnInfo)}>
-          <ColumnName
-            column={{
-              name: getColumnLabel(columnInfo),
-              type: columnInfo?.column.type ?? 'unknown',
-              type_options: columnInfo?.column.type_options ?? null,
-              constraintsType: getColumnConstraintType(columnInfo),
-              metadata: columnInfo?.column.metadata ?? null,
-            }}
+      {#if isShadcn}
+        <div class="search">
+          <TextInputWithPrefix
+            prefixIcon={iconSearch}
+            placeholder={$_('columns')}
+            aria-label={$_('columns')}
+            focusOnMount
+            bind:value={searchQuery}
           />
-        </ButtonMenuItem>
-      {/each}
+        </div>
+      {/if}
+      <div class="filter-column-picker">
+        {#each visibleColumnOptions as columnInfo (columnInfo.id)}
+          <ButtonMenuItem on:click={() => addFilter(columnInfo)}>
+            <ColumnName
+              column={{
+                name: getColumnLabel(columnInfo),
+                type: columnInfo?.column.type ?? 'unknown',
+                type_options: columnInfo?.column.type_options ?? null,
+                constraintsType: getColumnConstraintType(columnInfo),
+                metadata: columnInfo?.column.metadata ?? null,
+              }}
+            />
+          </ButtonMenuItem>
+        {:else}
+          <div class="empty">{$_('no_matching_records')}</div>
+        {/each}
+      </div>
     </DropdownMenu>
 
     {#if level < 2}
@@ -113,5 +148,16 @@
       display: flex;
       gap: var(--sm5);
     }
+  }
+
+  .filter-column-picker {
+    display: grid;
+    gap: 1px;
+  }
+
+  .empty {
+    padding: 0.5rem;
+    color: var(--glasklar-ui-text-muted, var(--color-fg-subtle-1));
+    font-size: var(--glasklar-ui-font-size-label, 0.75rem);
   }
 </style>

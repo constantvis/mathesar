@@ -26,6 +26,9 @@
 
   // Id for the input
   export let id: $$Props['id'] = undefined;
+  export let disabled: $$Props['disabled'] = false;
+  export let focusOnMount: $$Props['focusOnMount'] = false;
+  export let labelController: $$Props['labelController'] = undefined;
 
   export let cssVariables: $$Props['cssVariables'] = undefined;
   $: styleStringFromCssVariables = cssVariables
@@ -41,7 +44,7 @@
   }
 </script>
 
-<BaseInput {...$$restProps} bind:id />
+<BaseInput bind:id {disabled} {focusOnMount} {labelController} />
 
 <input
   bind:this={element}
@@ -53,6 +56,7 @@
   class:read-only={$$restProps.readonly}
   bind:value
   {id}
+  {disabled}
   on:input
   on:input={handleInput}
   on:focus
