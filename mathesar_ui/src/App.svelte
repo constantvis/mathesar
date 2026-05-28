@@ -617,6 +617,136 @@
     letter-spacing: 0;
   }
 
+  /* === 1d. shadcn DARK variant ========================================
+     When the user has theme-dark preference on AND shadcn mode is on,
+     repaint the surface / text / border / accent tokens to shadcn dark
+     values. Specifically primary CTA inverts (light text on dark bg →
+     dark text on light bg) so the Save button stays clearly the
+     primary action against the dark canvas. */
+  :root[data-ui-adapter-mode='shadcn'] body.theme-dark,
+  body.theme-dark
+    :root[data-ui-adapter-mode='shadcn'] {
+    /* surfaces */
+    --color-bg-base: hsl(240 10% 4%);
+    --color-bg-raised-1: hsl(240 6% 10%);
+    --color-bg-raised-2: hsl(240 6% 10%);
+    --color-bg-input: hsl(240 6% 10%);
+    --color-bg-control: hsl(240 6% 10%);
+    --color-bg-control-hover: hsl(240 6% 14%);
+    --color-bg-control-active: hsl(240 6% 18%);
+    --card-background: hsl(240 6% 10%);
+    --card-border-color: hsl(240 4% 16%);
+
+    /* text */
+    --color-fg-base: hsl(0 0% 98%);
+    --color-fg-subtle-1: hsl(240 5% 65%);
+    --color-fg-subtle-2: hsl(240 5% 55%);
+    --color-fg-faint: hsl(240 5% 50%);
+    --color-fg-control: hsl(0 0% 98%);
+    --color-fg-inverted: hsl(240 10% 4%);
+
+    /* borders */
+    --color-border-base: hsl(240 4% 16%);
+    --color-border-control: hsl(240 4% 18%);
+    --color-border-control-hover: hsl(240 4% 28%);
+    --color-border-control-active: hsl(240 4% 35%);
+    --color-border-control-focused: hsl(240 4% 60%);
+    --color-border-grid: hsl(240 4% 14%);
+    --color-border-header: hsl(240 4% 18%);
+
+    /* primary CTA — invert to LIGHT on dark so Save/Connect/Create
+       stay the clearly primary action. shadcn dark primary = near-white. */
+    --color-action-primary: hsl(0 0% 98%);
+    --color-action-primary-5: hsl(240 4% 14%);
+    --color-action-primary-10: hsl(240 4% 18%);
+    --color-action-primary-15: hsl(240 4% 22%);
+    --color-action-primary-20: hsl(240 4% 28%);
+    --color-action-primary-25: hsl(240 4% 35%);
+    --color-action-primary-40: hsl(240 4% 50%);
+    --color-action-primary-60: hsl(240 4% 70%);
+    --color-action-primary-80: hsl(0 0% 92%);
+    --color-action-primary-hover: hsl(0 0% 88%);
+    --color-action-primary-active: hsl(0 0% 80%);
+    --color-action-primary-focused: hsl(0 0% 90%);
+    --color-action-primary-80-hover: hsl(0 0% 86%);
+    --color-action-primary-80-active: hsl(0 0% 76%);
+    --color-action-primary-80-focused: hsl(0 0% 90%);
+    --color-action-primary-40-active: hsl(240 4% 60%);
+
+    /* secondary CTA — subtle filled */
+    --color-action-secondary: hsl(240 5% 14%);
+    --color-action-secondary-5: hsl(240 6% 10%);
+    --color-action-secondary-10: hsl(240 5% 12%);
+    --color-action-secondary-20: hsl(240 5% 14%);
+    --color-action-secondary-25: hsl(240 5% 18%);
+    --color-action-secondary-40: hsl(240 5% 24%);
+    --color-action-secondary-60: hsl(240 5% 35%);
+    --color-action-secondary-80: hsl(240 5% 55%);
+    --color-action-secondary-20-hover: hsl(240 5% 18%);
+    --color-action-secondary-25-active: hsl(240 5% 22%);
+    --color-action-secondary-40-active: hsl(240 5% 30%);
+
+    /* selection accent for focus/active states (cool light) */
+    --color-selection-strong-1: hsl(0 0% 92%);
+    --color-selection-strong-2: hsl(0 0% 85%);
+    --color-selection-subtle-1: hsl(240 4% 18%);
+    --color-bg-token: hsl(240 5% 16%);
+    --color-bg-highlight: hsl(54 100% 24%);
+    --color-bg-highlight-subtle: hsl(54 84% 18%);
+
+    /* contextual surfaces */
+    --color-bg-help: hsl(240 5% 12%);
+    --color-bg-info: hsl(212 70% 18%);
+    --color-bg-success: hsl(142 40% 14%);
+    --color-bg-warning: hsl(38 70% 18%);
+    --color-bg-danger: hsl(0 60% 18%);
+    --color-bg-tip: hsl(240 5% 12%);
+    --color-bg-tip-hover: hsl(240 5% 16%);
+    --color-bg-tip-active: hsl(240 5% 20%);
+    --color-bg-outcome: hsl(240 5% 12%);
+    --color-bg-outcome-hover: hsl(240 5% 16%);
+    --color-bg-outcome-active: hsl(240 5% 20%);
+
+    --color-fg-tip: hsl(0 0% 88%);
+    --color-fg-tip-hover: hsl(0 0% 98%);
+    --color-fg-tip-active: hsl(0 0% 100%);
+    --color-fg-outcome: hsl(0 0% 88%);
+    --color-fg-outcome-hover: hsl(0 0% 98%);
+    --color-fg-outcome-active: hsl(0 0% 100%);
+
+    /* icons + brand neutralized for dark */
+    --icon-fill-color: hsl(240 5% 18%);
+    --icon-stroke-color: hsl(0 0% 88%);
+    --color-fg-icon: hsl(240 5% 65%);
+    --color-brand: hsl(0 0% 98%);
+    --color-brand-subtle: hsl(240 5% 65%);
+
+    /* links neutral foreground */
+    --color-link: var(--color-fg-base);
+    --color-link-hover: var(--color-fg-base);
+    --color-link-active: var(--color-fg-base);
+    --color-fg-link: var(--color-fg-base);
+    --color-fg-link-hover: var(--color-fg-base);
+    --color-fg-link-active: var(--color-fg-base);
+
+    /* shadow — darker for dark theme */
+    --color-shadow: hsl(0 0% 0% / 0.5);
+
+    /* product utility colors — keep neutral grey-dark */
+    --color-schema: hsl(0 0% 90%);
+    --color-schema-80: hsl(240 5% 16%);
+    --color-schema-60: hsl(240 5% 22%);
+    --color-schema-40: hsl(240 5% 30%);
+    --color-schema-20: hsl(240 5% 14%);
+    --color-schema-10: hsl(240 6% 10%);
+    --color-schema-5: hsl(240 6% 8%);
+    --color-table: hsl(0 0% 90%);
+    --color-table-80: hsl(240 5% 16%);
+    --color-table-60: hsl(240 5% 22%);
+    --color-database: hsl(0 0% 90%);
+    --color-database-80: hsl(240 5% 16%);
+  }
+
   /* === 2. app header + breadcrumbs ==================================== */
 
   /* Page-level gradient canvas — taken from `SchemaPage.svelte` (the
@@ -804,6 +934,39 @@
     .btn.dropdown
     > .arrow {
     display: none;
+  }
+
+  /* The Mathesar gear icon is a filled FontAwesome faGear which reads
+     heavier than Lucide-style outlined shadcn icons. We can't swap the
+     SVG without editing icon registration, but we can pull the visual
+     weight down: smaller glyph + tighter button. */
+  :root[data-ui-adapter-mode='shadcn']
+    .app-header
+    .right
+    .btn
+    .fa-icon {
+    font-size: 0.95rem !important;
+  }
+
+  :root[data-ui-adapter-mode='shadcn']
+    .app-header
+    .right
+    .btn.dropdown
+    .user-switcher {
+    color: var(--glasklar-ui-text-muted);
+  }
+
+  :root[data-ui-adapter-mode='shadcn']
+    .app-header
+    .right
+    .btn.dropdown:hover
+    .user-switcher,
+  :root[data-ui-adapter-mode='shadcn']
+    .app-header
+    .right
+    .btn.dropdown[aria-expanded='true']
+    .user-switcher {
+    color: var(--glasklar-ui-text);
   }
 
   :root[data-ui-adapter-mode='shadcn'] .app-header .right .btn:hover {
