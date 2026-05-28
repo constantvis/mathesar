@@ -649,6 +649,11 @@
     --color-fg-faint: hsl(240 5% 50%);
     --color-fg-control: hsl(0 0% 98%);
     --color-fg-inverted: hsl(240 10% 4%);
+    /* `--color-fg-light` is consumed by `.btn-primary` for its label
+       text. In light shadcn it sits on a dark fill (white-on-dark).
+       After inverting the primary fill to light for dark mode, the
+       text must invert too — was producing white-on-white labels. */
+    --color-fg-light: hsl(240 10% 6%);
 
     /* borders */
     --color-border-base: hsl(240 4% 16%);
