@@ -97,6 +97,37 @@ export default class AssociatedCellData<T>
   }
 
   setFetchedValues(values: AssociatedCellValuesForSheet<T>): void {
+    /**
+     * MERGE instead of REPLACE.
+     *
+     * Replacing wiped previously-cached record summaries / file manifests
+     * whenever a follow-up `records.list` (or any other refresh) returned
+     * a response without summaries for already-rendered rows. The
+     * SimpleManyToManyJoinCell + LinkedRecordCell components fall back to
+     * the raw foreign-key id string when no summary is in the map, so the
+     * "wipe + repopulate" cycle made cells visibly flicker between
+     * enriched titles ("🇩🇪 Dresden") and raw record ids
+     * ("recU32DY32l5hW") during scroll-induced re-fetches.
+     *
+     * Merging is always safe: a record's summary doesn't go stale within
+     * the lifetime of a single view (the records.update path uses
+     * `addBespokeValues` which already merges), and if a record genuinely
+     * disappears from the sheet, leaving its summary in the cache costs
+     * a few hundred bytes at worst — far cheaper than re-fetching it on
+     * every scroll.
+     */
+    this.fetched.update((existing) =>
+      mergeAssociatedValuesForSheet(existing, values),
+    );
+  }
+
+  /**
+   * Escape hatch — fully replace the fetched values. Use this when the
+   * underlying record set genuinely changes (e.g. switching tables, or
+   * a query change that swaps the entire result set). NOT for routine
+   * paginated / partial refreshes.
+   */
+  replaceFetchedValues(values: AssociatedCellValuesForSheet<T>): void {
     this.fetched.set(values);
   }
 
